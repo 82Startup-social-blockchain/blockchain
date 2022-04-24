@@ -1,7 +1,7 @@
 import enum
 
 
-class TransactionType(enum.Enum):
+class TransactionType(enum.IntEnum):
     POST = 1
     COMMENT = 2
     REPLY = 3
@@ -15,7 +15,7 @@ class TransactionType(enum.Enum):
     # TODO: add more react types, report?, make it a token? (co-ownership)
 
 
-class TransactionContentType(enum.Enum):
+class TransactionContentType(enum.IntEnum):
     NONE = 0  # if the content does not require content upload
     STRING = 1
     HTML = 2

@@ -15,8 +15,6 @@ Layer-1 Blockchain
 * 3. parent/child - source: content hash, child, target: transaction hash of parent
 * Validate these properties in validation endpoint
 
-- TransactionWithContent - Transaction + content => what the node handles
-
 * Contains transaction data
 * Nodes receive Transaction
 
@@ -82,7 +80,7 @@ $ python -m venv venv
 $ source venv/bin/activate
 ```
 
-4. Download the packages.
+4. Download the packages. For `cryptography` follow instructions on https://cryptography.io/en/latest/installation/ if you need packages pre-installed.
 
 ```
 $ pip install -r requirements.txt
