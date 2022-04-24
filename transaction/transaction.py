@@ -5,6 +5,7 @@ import json
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.exceptions import InvalidSignature
 
 from .transaction_type import TransactionType, TransactionContentType
 
@@ -85,7 +86,6 @@ class Transaction:
         # transaction hash is used as an id of the transaction (e.g. finding the post for a comment)
         self.transaction_hash = self.get_hash()
 
-        # sign the transaction using
         self.signature = None
 
     def __str__(self):
@@ -106,7 +106,7 @@ class Transaction:
         return json.dumps(tx_dict)
 
     def to_dict(self) -> dict:
-        # convert to json serializable dictionary
+        # convert to json serializable dictionary that will be hashed and signed
         return {
             **self.transaction_source.to_dict(),
             **self.transaction_target.to_dict(),
@@ -124,12 +124,19 @@ class Transaction:
             ec.ECDSA(hashes.SHA256())
         )
 
-    def validate_transaction(self) -> None:
+    def _verify_transaction(self) -> None:
+        # If the signature is not verified, throw InvalidSignature excxeption
+        if self.signature is None:
+            raise InvalidSignature
         public_key_hex = binascii.unhexlify(
             self.transaction_source.source_public_key_hex)
         public_key = serialization.load_der_public_key(public_key_hex)
         public_key.verify(self.signature, json.dumps(self.to_dict()).encode('utf-8'),
                           ec.ECDSA(hashes.SHA256()))
+
+    def validate_transaction(self) -> None:
+        self._verify_transaction()
+        # TODO: validate for each transaction type (e.g. TIP more than what an account has)
 
 
 # Notes

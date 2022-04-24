@@ -3,14 +3,20 @@ import enum
 
 class TransactionType(enum.IntEnum):
     POST = 1
-    COMMENT = 2
-    REPLY = 3
-    SHARE = 4
-    REACT_LIKE = 5
-    REPORT = 6
-    TIP = 7
-    FOLLOW = 8
-    UNFOLLOW = 9
+    EDIT_POST = 2
+    DELETE_POST = 3
+    COMMENT = 4
+    EDIT_COMMENT = 5
+    DELETE_COMMENT = 6
+    REPLY = 7
+    EDIT_REPLY = 8
+    DELETE_REPLY = 9
+    SHARE = 10
+    REACT_LIKE = 11
+    REPORT = 12
+    TIP = 13
+    FOLLOW = 14
+    UNFOLLOW = 15
 
     # TODO: add more react types, report?, make it a token? (co-ownership)
 
