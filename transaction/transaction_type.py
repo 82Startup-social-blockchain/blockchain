@@ -8,6 +8,9 @@ class TransactionType(enum.Enum):
     SHARE = 4
     REACT_LIKE = 5
     REPORT = 6
+    TIP = 7
+    FOLLOW = 8
+    UNFOLLOW = 9
 
     # TODO: add more react types, report?, make it a token? (co-ownership)
 

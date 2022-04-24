@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+import json
 
 from transaction_type import TransactionType, TransactionContentType
 
@@ -50,11 +51,11 @@ class Transaction:
         # sign the transaction using
         self.signature = None
 
-    def get_transaction_hash(self):
+    def sign_transaction(self, private_key: str):
+        # self.signature =
         pass
 
-    def sign_transaction(self, account):
-        # self.signature =
+    def validate(self):
         pass
 
 
