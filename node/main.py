@@ -3,13 +3,18 @@ from typing import Optional
 from fastapi import FastAPI
 
 from models import TransactionRequest
+from node import Node
 
 app = FastAPI()
 
+node = Node()
+
+
+### Endpoints that other nodes call ###
 
 @app.post("/validation/block")
 async def validate_block():
-    # hit this endpoint to broadcast block to this node
+    # other nodes hit this endpoint to broadcast block to this node
 
     # 1. create block instance
     # 2. validate block
@@ -20,19 +25,35 @@ async def validate_block():
 
 @app.post("/validation/transaction")
 async def validate_activity():
-    # hit this endpoint to broadcast transaction to this node
+    # other nodes hit this endpoint to broadcast transaction to this node
 
     # 1. create Activity instance
     # 2. add activity to activity pool
     pass
 
 
+@app.post("/node")
+async def accept_new_node():
+    new_node = Node()
+    # add the new node to known node memory pool => TODO: create known node pool
+    pass
+
+
+@app.get("/known_nodes")
+async def get_known_nodes():
+    # return known nodes
+    pass
+
+
+### Endpoints that services call ###
+
 @app.post("/activity")
 async def create_activity(activityRequest: TransactionRequest):
     # User-side API to create activity based on type and content
 
     # 1. create transaction instance and activity instance from activity request
-    # 2. add to activity pool and broadcast to other nodes
+    # 2. upload to s3
+    # 3. add to activity pool and broadcast to other nodes
     pass
 
 
