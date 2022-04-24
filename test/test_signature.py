@@ -1,8 +1,10 @@
+import unittest
 import binascii
 from typing import Optional
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.exceptions import InvalidSignature
 
 from account.account import Account
 from transaction.transaction import TransactionSource, TransactionTarget, Transaction
@@ -59,11 +61,36 @@ def get_sample_transaction(
     return Transaction(transaction_source, transaction_target)
 
 
+class SignatureTestCase(unittest.TestCase):
+    def setUp(self):
+        self.account1 = Account()
+
+    def test_valid_signature(self):
+        transaction = get_sample_transaction(
+            self.account1.private_key.public_key(),
+            TransactionType.POST,
+            content="Random content",
+            content_type=TransactionContentType.STRING
+        )
+        transaction.sign_transaction(self.account1.private_key)
+
+        transaction.validate_transaction()
+
+    def test_invalid_signature(self):
+        transaction = get_sample_transaction(
+            self.account1.private_key.public_key(),
+            TransactionType.POST,
+            content="Random content",
+            content_type=TransactionContentType.STRING
+        )
+        transaction.sign_transaction(self.account1.private_key)
+
+        # manipulate transaction data
+        transaction.transaction_target.amount = 1
+        self.assertRaises(InvalidSignature, transaction.validate_transaction)
+
+
 if __name__ == '__main__':
-    account1 = Account()
-    transaction = get_sample_transaction(
-        account1.private_key.public_key(),
-        TransactionType.POST,
-        content="Random content",
-        content_type=TransactionContentType.STRING
-    )
+
+    # try
+    unittest.main()

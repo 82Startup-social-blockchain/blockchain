@@ -4,7 +4,7 @@ from typing import Optional
 import json
 
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 
 from .transaction_type import TransactionType, TransactionContentType
 
@@ -114,8 +114,6 @@ class Transaction:
         }
 
     def get_hash(self) -> bytes:
-        # need to remove the bytes object from dict because json doesn't serialize bytes update hash in order of
-        # transaction dict -> source_public_key_hash -> target_public_key_hash -> target_transaction_hash
         digest = hashes.Hash(hashes.SHA256())
         digest.update(json.dumps(self.to_dict()).encode('utf-8'))
         return digest.finalize()
@@ -126,8 +124,13 @@ class Transaction:
             ec.ECDSA(hashes.SHA256())
         )
 
-    def validate(self):
-        pass
+    def validate_transaction(self) -> None:
+        public_key_hex = binascii.unhexlify(
+            self.transaction_source.source_public_key_hex)
+        public_key = serialization.load_der_public_key(public_key_hex)
+        public_key.verify(self.signature, json.dumps(self.to_dict()).encode('utf-8'),
+                          ec.ECDSA(hashes.SHA256()))
+
 
 # Notes
 # We use hex so that it can be easily decoded to string and jsonified and so that
