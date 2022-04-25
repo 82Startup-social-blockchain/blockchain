@@ -58,6 +58,8 @@ Flagship Service Node
 
 * Do we make account creation part of the blockchain or something different (i.e. account would interact with blockchain just through public key)
 
+- How to prevent timestamp manipulation by a node?
+
 ### Plan
 
 1. Put everything in RAM

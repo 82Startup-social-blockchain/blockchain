@@ -1,6 +1,6 @@
 import binascii
 import datetime
-from typing import Optional
+from typing import Optional, Any
 import json
 
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
 
 from .transaction_type import TransactionType, TransactionContentType
+from utils.crypto import get_public_key_hex
 
 
 class TransactionSource:
@@ -18,6 +19,7 @@ class TransactionSource:
         transaction_type: TransactionType,
         content_type: Optional[TransactionContentType] = None,
         content_hash: Optional[bytes] = None,
+        tx_fee: Optional[float] = None
     ):
         self.source_public_key_hex = source_public_key_hex
         self.transaction_type = transaction_type
@@ -26,13 +28,16 @@ class TransactionSource:
         # S3 path => in actual blockchain, it will be IPFS address
         self.content_hash = content_hash
 
+        self.tx_fee = tx_fee  # transaction fee if any
+
     def __str__(self):
         return json.dumps(self.to_dict())
 
     def to_dict(self) -> dict:
         # convert to json serializable dictionary
         if self.content_hash is not None:
-            content_hash_hex = binascii.hexlify(self.content_hash)
+            content_hash_hex = binascii.hexlify(
+                self.content_hash).decode('utf-8')
         else:
             content_hash_hex = None
 
@@ -40,7 +45,8 @@ class TransactionSource:
             "source_public_key_hex": self.source_public_key_hex.decode('utf-8'),
             "transaction_type": self.transaction_type,
             "content_type": self.content_type,
-            "content_hash": content_hash_hex.decode('utf-8')
+            "content_hash": content_hash_hex,
+            "tx_fee": self.tx_fee
         }
 
 
@@ -51,11 +57,13 @@ class TransactionTarget:
         target_transaction_hash_hex: Optional[bytes] = None,
         # public key of the recipient - seralized to DER and converted to hex
         target_public_key_hex: Optional[bytes] = None,
-        amount: Optional[float] = None
+        tx_token: Optional[float] = None,  # amount of token transfered
+        tx_object: Optional[Any] = None,  # any object transfered
     ):
         self.target_transaction_hash_hex = target_transaction_hash_hex
         self.target_public_key_hex = target_public_key_hex
-        self.amount = amount
+        self.tx_token = tx_token
+        self.tx_object = tx_object
 
     def __str__(self):
         return json.dumps(self.to_dict())
@@ -67,7 +75,8 @@ class TransactionTarget:
             if self.target_transaction_hash_hex is not None else None,
             "target_public_key_hex": self.target_public_key_hex.decode('utf-8')
             if self.target_public_key_hex is not None else None,
-            "amount": self.amount
+            "tx_token": self.tx_token,
+            "tx_object": self.tx_object,
         }
 
 
@@ -134,10 +143,57 @@ class Transaction:
         public_key.verify(self.signature, json.dumps(self.to_dict()).encode('utf-8'),
                           ec.ECDSA(hashes.SHA256()))
 
-    def validate_transaction(self) -> None:
+    def validate(self) -> None:
         self._verify_transaction()
         # TODO: validate for each transaction type (e.g. TIP more than what an account has)
 
+
+def generate_transaction(
+    public_key: ec.EllipticCurvePublicKey,
+    transaction_type: TransactionType,
+    content: Optional[str] = None,
+    content_type: Optional[TransactionContentType] = None,
+    tx_fee: Optional[float] = None,
+    target_transaction_hash: Optional[bytes] = None,
+    target_public_key: Optional[ec.EllipticCurvePublicKey] = None,
+    tx_token: Optional[float] = None,
+    tx_object: Optional[Any] = None
+) -> Transaction:
+    # create TransactionSource instance
+    if content is not None:
+        content_digest = hashes.Hash(hashes.SHA256())
+        content_digest.update(content.encode('utf-8'))
+        content_hash = content_digest.finalize()
+    else:
+        content_hash = None
+
+    transaction_source = TransactionSource(
+        get_public_key_hex(public_key),
+        transaction_type,
+        content_type=content_type,
+        content_hash=content_hash,
+        tx_fee=tx_fee
+    )
+
+    # create TransactionTarget instance
+    if target_transaction_hash is not None:
+        target_transaction_hash_hex = binascii.hexlify(target_transaction_hash)
+    else:
+        target_transaction_hash_hex = None
+
+    if target_public_key is not None:
+        target_public_key_hex = get_public_key_hex(target_public_key)
+    else:
+        target_public_key_hex = None
+
+    transaction_target = TransactionTarget(
+        target_transaction_hash_hex=target_transaction_hash_hex,
+        target_public_key_hex=target_public_key_hex,
+        tx_token=tx_token,
+        tx_object=tx_object
+    )
+
+    return Transaction(transaction_source, transaction_target)
 
 # Notes
 # We use hex so that it can be easily decoded to string and jsonified and so that

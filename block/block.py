@@ -1,7 +1,7 @@
 import binascii
 import json
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
@@ -14,7 +14,7 @@ class Block:
     def __init__(
         self,
         previous_block: Optional['Block'],
-        transaction_list: list(Transaction),
+        transaction_list: List[Transaction],
         validator_public_key_hex: bytes,
         timestamp: datetime
     ):
@@ -47,8 +47,9 @@ class Block:
 
     def to_dict(self) -> dict:
         # conver to json serializable dictionary that will be hashed and signed
-        if self.previous_block is None:
-            previous_block_hash = self.previous_block.block_hash
+        if self.previous_block is not None:
+            previous_block_hash = binascii.hexlify(
+                self.previous_block.block_hash).decode('utf-8')
         else:
             previous_block_hash = None
 
@@ -90,7 +91,7 @@ class Block:
 
         # 2. validate all the transactions
         for transaction in self.transaction_list:
-            transaction.validate_transaction()
+            transaction.validate()
 
         # TODO: 3. vadliate that the validator got the right amount of reward
 
