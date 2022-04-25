@@ -1,16 +1,22 @@
-from typing import Optional
+import os
+from typing import Optional, Dict
 
 from fastapi import FastAPI
+from node.models import NodeAddress
 
-from models import TransactionRequest
-from node import Node
+# from models import TransactionRequest
+from node.node import Node
+from utils import constants
 
 app = FastAPI()
 
-node = Node()
+assert "ADDRESS" in os.environ
 
+node = Node(os.environ["ADDRESS"])
+node.join_network()
 
 ### Endpoints that other nodes call ###
+
 
 @app.post("/validation/block")
 async def validate_block():
@@ -32,23 +38,22 @@ async def validate_activity():
     pass
 
 
-@app.post("/node")
-async def accept_new_node():
-    new_node = Node()
-    # add the new node to known node memory pool => TODO: create known node pool
-    pass
+@app.post(constants.NODE_REQUEST_PATH)
+async def accept_new_node(data: NodeAddress):
+    # add the new node to known node address list
+    node.accept_new_node(data.address)
 
 
-@app.get("/known_nodes")
+@app.get(constants.KNOWN_NODES_PATH)
 async def get_known_nodes():
     # return known nodes
-    pass
+    return list(node.known_node_address_set)
 
 
 ### Endpoints that services call ###
 
 @app.post("/activity")
-async def create_activity(activityRequest: TransactionRequest):
+async def create_activity():
     # User-side API to create activity based on type and content
 
     # 1. create transaction instance and activity instance from activity request

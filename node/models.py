@@ -17,3 +17,7 @@ class TransactionRequest(BaseModel):
 
     content_type: Optional[TransactionContentType]
     content: Optional[str]  # react does not have content
+
+
+class NodeAddress(BaseModel):
+    address: str

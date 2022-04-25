@@ -85,5 +85,12 @@ $ source venv/bin/activate
 4. Download the packages. For `cryptography` follow instructions on https://cryptography.io/en/latest/installation/ if you need packages pre-installed.
 
 ```
-$ pip install -r requirements.txt
+(venv) $ pip install -r requirements.txt
+```
+
+5. Run the node locally. You must first set address of the node as an environment variable.
+
+```
+(venv) $ export ADDRESS=http://127.0.0.1:8000
+(venv) $ uvicorn node.main:app --reload --port 8000
 ```
