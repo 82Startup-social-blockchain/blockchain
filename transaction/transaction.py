@@ -31,9 +31,9 @@ class TransactionSource:
         self.tx_fee = tx_fee  # transaction fee if any
 
     def __str__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self._to_dict())
 
-    def to_dict(self) -> dict:
+    def _to_dict(self) -> dict:
         # convert to json serializable dictionary
         if self.content_hash is not None:
             content_hash_hex = binascii.hexlify(
@@ -66,9 +66,9 @@ class TransactionTarget:
         self.tx_object = tx_object
 
     def __str__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self._to_dict())
 
-    def to_dict(self) -> dict:
+    def _to_dict(self) -> dict:
         # convert to json serializable dictionary
         return {
             "target_transaction_hash_hex": self.target_transaction_hash_hex.decode('utf-8')
@@ -98,7 +98,7 @@ class Transaction:
         self.signature = None
 
     def __str__(self):
-        tx_dict = self.to_dict()
+        tx_dict = self._to_dict()
 
         # Add signature hex
         if self.signature is not None:
@@ -114,22 +114,22 @@ class Transaction:
 
         return json.dumps(tx_dict)
 
-    def to_dict(self) -> dict:
+    def _to_dict(self) -> dict:
         # convert to json serializable dictionary that will be hashed and signed
         return {
-            **self.transaction_source.to_dict(),
-            **self.transaction_target.to_dict(),
+            **self.transaction_source._to_dict(),
+            **self.transaction_target._to_dict(),
             "timestamp": self.timestamp.isoformat()
         }
 
     def get_hash(self) -> bytes:
         digest = hashes.Hash(hashes.SHA256())
-        digest.update(json.dumps(self.to_dict()).encode('utf-8'))
+        digest.update(json.dumps(self._to_dict()).encode('utf-8'))
         return digest.finalize()
 
     def sign_transaction(self, private_key: ec.EllipticCurvePrivateKey):
         self.signature = private_key.sign(
-            json.dumps(self.to_dict()).encode('utf-8'),
+            json.dumps(self._to_dict()).encode('utf-8'),
             ec.ECDSA(hashes.SHA256())
         )
 
@@ -140,7 +140,7 @@ class Transaction:
         public_key_hex = binascii.unhexlify(
             self.transaction_source.source_public_key_hex)
         public_key = serialization.load_der_public_key(public_key_hex)
-        public_key.verify(self.signature, json.dumps(self.to_dict()).encode('utf-8'),
+        public_key.verify(self.signature, json.dumps(self._to_dict()).encode('utf-8'),
                           ec.ECDSA(hashes.SHA256()))
 
     def validate(self) -> None:

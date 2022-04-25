@@ -1,6 +1,5 @@
 import unittest
 import binascii
-from typing import Any, Optional
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
