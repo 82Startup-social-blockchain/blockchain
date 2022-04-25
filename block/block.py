@@ -28,24 +28,20 @@ class Block:
 
         self.signature = None
 
+    def __len__(self):
+        if self.previous_block is None:
+            return 1
+        cnt = 1
+        current_block = self
+        while current_block.previous_block:
+            cnt += 1
+            current_block = current_block.previous_block
+        return cnt
+
     def __str__(self):
-        block_dict = self._to_dict()
+        return json.dumps(self.to_dict())
 
-        # add signature hex
-        if self.signature is not None:
-            signature_hex = binascii.hexlify(self.signature)
-        else:
-            signature_hex = None
-        block_dict["signature_hex"] = signature_hex.decode(
-            'utf-8') if signature_hex is not None else None
-
-        # add block hash
-        block_dict["block_hash_hex"] = binascii.hexlify(
-            self.block_hash).decode('utf-8')
-
-        return json.dumps(block_dict)
-
-    def _to_dict(self) -> dict:
+    def _to_presigned_dict(self) -> dict:
         # conver to json serializable dictionary that will be hashed and signed
         if self.previous_block is not None:
             previous_block_hash = binascii.hexlify(
@@ -64,14 +60,32 @@ class Block:
             "timestamp": self.timestamp.isoformat(),
         }
 
+    def to_dict(self) -> dict:
+        # convert to json serializable dictionary with all block data
+        block_dict = self._to_presigned_dict()
+
+        # add signature hex
+        if self.signature is not None:
+            signature_hex = binascii.hexlify(self.signature)
+        else:
+            signature_hex = None
+        block_dict["signature_hex"] = signature_hex.decode(
+            'utf-8') if signature_hex is not None else None
+
+        # add block hash
+        block_dict["block_hash_hex"] = binascii.hexlify(
+            self.block_hash).decode('utf-8')
+
+        return block_dict
+
     def get_hash(self):
         digest = hashes.Hash(hashes.SHA256())
-        digest.update(json.dumps(self._to_dict()).encode('utf-8'))
+        digest.update(json.dumps(self._to_presigned_dict()).encode('utf-8'))
         return digest.finalize()
 
     def sign_block(self, private_key: ec.EllipticCurvePrivateKey):
         self.signature = private_key.sign(
-            json.dumps(self._to_dict()).encode('utf-8'),
+            json.dumps(self._to_presigned_dict()).encode('utf-8'),
             ec.ECDSA(hashes.SHA256())
         )
 
@@ -80,7 +94,7 @@ class Block:
             raise InvalidSignature
         public_key_hex = binascii.unhexlify(self.validator_public_key_hex)
         public_key = serialization.load_der_public_key(public_key_hex)
-        public_key.verify(self.signature, json.dumps(self._to_dict()).encode('utf-8'),
+        public_key.verify(self.signature, json.dumps(self._to_presigned_dict()).encode('utf-8'),
                           ec.ECDSA(hashes.SHA256()))
 
     def validate(self):

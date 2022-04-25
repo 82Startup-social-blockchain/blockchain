@@ -1,7 +1,8 @@
-from typing import List
 import json
 import requests
 
+from block.block import Block
+from transaction.transaction import Transaction
 from utils import constants
 
 
@@ -12,6 +13,7 @@ class Node:
     ):
         self.address = address
         self.known_node_address_set = self._initialize_known_node_address_set()
+        self.blockchain = None
 
     def _initialize_known_node_address_set(self):
         # TODO: use something better than just json
@@ -55,6 +57,26 @@ class Node:
 
         self.known_node_address_set.difference_update(disconnected_address_set)
 
+    def _get_longest_blockchain(self):
+        disconnected_address_set = set([])
+        for address in self.known_node_address_set:
+            if address == self.address:
+                continue
+            url = address + constants.BLOCKCHAIN_REQUEST_PATH
+            try:
+                r = requests.get(url=url)
+                if self.blockchain is None:
+                    self.blockchain = r.json()
+                else:
+                    if len(self.blockchain) < len(r.json()):
+                        self.blockchain = r.json()
+            except requests.exceptions.ConnectionError:
+                disconnected_address_set.add(address)
+        self.known_node_address_set.difference_update(disconnected_address_set)
+
+    def accept_new_node(self, address: str):
+        self.known_node_address_set.add(address)
+
     def join_network(self):
         # 1. Ask seed nodes for their known nodes
         self._request_addresses_from_known_nodes()
@@ -62,11 +84,11 @@ class Node:
         # 2. Advertise itself to known nodes
         self._advertise_to_known_nodes()
 
-        print("known_node_address_set: ", self.known_node_address_set)
-
         # 3. get blockchain from known nodes
+        self._get_longest_blockchain()
+
+    def accept_new_transaction(self, transaction: Transaction):
         pass
 
-    def accept_new_node(self, address):
-        self.known_node_address_set.add(address)
-        print("updated known node address: ", self.known_node_address_set)
+    def accept_new_block(self, block: Block):
+        pass

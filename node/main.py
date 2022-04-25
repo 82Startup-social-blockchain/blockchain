@@ -50,6 +50,12 @@ async def get_known_nodes():
     return list(node.known_node_address_set)
 
 
+@app.get(constants.BLOCKCHAIN_REQUEST_PATH)
+async def get_blockchain():
+    # return the current state of blockchain that the node has
+    return node.blockchain
+
+
 ### Endpoints that services call ###
 
 @app.post("/activity")
