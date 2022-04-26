@@ -21,15 +21,14 @@ class Blockchain:
             current_block = current_block.previous_block
         return blockchain_list
 
-    def from_dict_list(self, blockchain_dict_list: List[dict]) -> Block:
+    def from_dict_list(self, blockchain_dict_list: List[dict]):
         # convert list of blocks (blockes represented as dict) in JSON serializable format
         # to block list (list of Block objects) - used for converting received to this data structure
         # head is at index0
         previous_block, current_block = None, None
         for block_dict in reversed(blockchain_dict_list):
-            current_block = create_block_from_dict(block_dict)
-            current_block.previous_block = previous_block
+            current_block = create_block_from_dict(block_dict, previous_block)
             previous_block = current_block
-        return current_block
+        self.head = current_block
 
     # TODO: add utility function for blockchain e.g. finding specific transaction in the blocks of the chain

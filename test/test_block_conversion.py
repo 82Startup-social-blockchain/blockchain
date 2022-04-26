@@ -1,9 +1,9 @@
-import binascii
 import unittest
 from datetime import datetime
 
 from account.account import Account
 from block.block import Block, create_block_from_dict
+from block.blockchain import Blockchain
 from transaction.transaction import generate_transaction
 from transaction.transaction_type import TransactionContentType, TransactionType
 from utils.crypto import get_public_key_hex
@@ -70,3 +70,11 @@ class BlockConversionTestCase(unittest.TestCase):
         block2_same = create_block_from_dict(block2_dict, self.block1)
         self.assertTrue(self.block2 == block2_same)
         self.block2.previous_block = self.block1
+
+    def test_blockchain_conversion(self):
+        blockchain = Blockchain(self.block2)
+        blockchain_dict_list = blockchain.to_dict_list()
+        self.assertEqual(len(blockchain_dict_list), 2)
+        blockchain_same = Blockchain()
+        blockchain_same.from_dict_list(blockchain_dict_list)
+        self.assertTrue(blockchain.head == blockchain_same.head)
