@@ -59,11 +59,14 @@ class BlockConversionTestCase(unittest.TestCase):
         )
         self.block2.sign_block(self.account2.private_key)
 
-    def test_bidirection_conversion(self):
+    def test_circular_conversion(self):
         self.maxDiff = None
         # block -> block_dict -> block
         block1_dict = self.block1.to_dict()
         block1_same = create_block_from_dict(block1_dict)
         self.assertTrue(self.block1 == block1_same)
 
-        # block_dict -> block -> block_dict
+        block2_dict = self.block2.to_dict()
+        block2_same = create_block_from_dict(block2_dict, self.block1)
+        self.assertTrue(self.block2 == block2_same)
+        self.block2.previous_block = self.block1

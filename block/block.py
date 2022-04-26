@@ -116,7 +116,7 @@ class Block:
         # TODO: 3. vadliate that the validator got the right amount of reward
 
 
-def create_block_from_dict(block_dict):
+def create_block_from_dict(block_dict, previous_block: Optional[Block] = None):
     """ Create a Block instance from input block dict
     block_dict has the following items
     - previous_block_hash_hex   : Optional[bytes]
@@ -137,7 +137,7 @@ def create_block_from_dict(block_dict):
         signature = None
 
     block = Block(
-        None,
+        previous_block,
         transaction_list,
         block_dict["validator_public_key_hex"].encode('utf-8'),
         datetime.fromisoformat(block_dict["timestamp"])

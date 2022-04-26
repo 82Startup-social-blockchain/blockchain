@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from block.block import Block
+from block.block import Block, create_block_from_dict
 from utils import constants
 
 
@@ -16,21 +16,20 @@ class Blockchain:
         # convert the blockchain into a JSON serializable format - used for converting before sending
         blockchain_list = []  # head is at index 0
         current_block = self.head
-        if current_block is None:
-            return []
-        while current_block.previous_block:
-            blockchain_list.append(current_block.to_dict)
+        while current_block:
+            blockchain_list.append(current_block.to_dict())
             current_block = current_block.previous_block
         return blockchain_list
 
-    def from_dict_list(self, blockchain_dict_list: List[dict]):
+    def from_dict_list(self, blockchain_dict_list: List[dict]) -> Block:
         # convert list of blocks (blockes represented as dict) in JSON serializable format
         # to block list (list of Block objects) - used for converting received to this data structure
         # head is at index0
-        if len(blockchain_dict_list) == 0:
-            self.head = None
-        else:
-            for block_dict in reversed(blockchain_dict_list):
-                pass
+        previous_block, current_block = None, None
+        for block_dict in reversed(blockchain_dict_list):
+            current_block = create_block_from_dict(block_dict)
+            current_block.previous_block = previous_block
+            previous_block = current_block
+        return current_block
 
     # TODO: add utility function for blockchain e.g. finding specific transaction in the blocks of the chain

@@ -65,7 +65,7 @@ class TransactionTarget:
         # public key of the recipient - seralized to DER and converted to hex
         target_public_key_hex: Optional[bytes] = None,
         tx_token: Optional[float] = None,  # amount of token transfered
-        tx_object: Optional[Any] = None,  # any object transfered
+        tx_object: Optional[Any] = None,  # TODO: define type of this object
     ):
         self.target_transaction_hash_hex = target_transaction_hash_hex
         self.target_public_key_hex = target_public_key_hex
@@ -195,12 +195,17 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
         tx_dict["content_type"]
     ) if tx_dict["content_type"] is not None else None
 
+    if tx_dict["content_hash_hex"] is not None:
+        content_hash = binascii.unhexlify(
+            tx_dict["content_hash_hex"].encode('utf-8'))
+    else:
+        content_hash = None
+
     transaction_source = TransactionSource(
         tx_dict["source_public_key_hex"].encode('utf-8'),
         TransactionType(tx_dict["transaction_type"]),
         content_type=content_type,
-        content_hash=binascii.unhexlify(
-            tx_dict["content_hash_hex"].encode('utf-8')),
+        content_hash=content_hash,
         tx_fee=tx_dict["tx_fee"]
     )
 
