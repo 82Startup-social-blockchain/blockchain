@@ -190,15 +190,10 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
     - transaction_hash_hex        : byte
     - timestamp                   : str
     """
+    # create TransactionSource object
     content_type = TransactionContentType(
         tx_dict["content_type"]
     ) if tx_dict["content_type"] is not None else None
-
-    if tx_dict["signature_hex"] is not None:
-        signature_hex = tx_dict["signature_hex"].encode('utf-8')
-        signature = binascii.unhexlify(signature_hex)
-    else:
-        signature = None
 
     transaction_source = TransactionSource(
         tx_dict["source_public_key_hex"].encode('utf-8'),
@@ -209,12 +204,32 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
         tx_fee=tx_dict["tx_fee"]
     )
 
+    # create TransactionTarget object
+    if tx_dict["target_transaction_hash_hex"] is not None:
+        target_transaction_hash_hex = tx_dict["target_transaction_hash_hex"].encode(
+            'utf-8')
+    else:
+        target_transaction_hash_hex = None
+
+    if tx_dict["target_public_key_hex"] is not None:
+        target_public_key_hex = tx_dict["target_public_key_hex"].encode(
+            'utf-8')
+    else:
+        target_public_key_hex = None
+
     transaction_target = TransactionTarget(
-        target_transaction_hash_hex=tx_dict["target_transaction_hash_hex"],
-        target_public_key_hex=tx_dict["target_public_key_hex"],
+        target_transaction_hash_hex=target_transaction_hash_hex,
+        target_public_key_hex=target_public_key_hex,
         tx_token=tx_dict["tx_token"],
         tx_object=tx_dict["tx_object"]
     )
+
+    # create Transaction object
+    if tx_dict["signature_hex"] is not None:
+        signature_hex = tx_dict["signature_hex"].encode('utf-8')
+        signature = binascii.unhexlify(signature_hex)
+    else:
+        signature = None
 
     transaction = Transaction(
         transaction_source,

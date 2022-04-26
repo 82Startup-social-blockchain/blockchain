@@ -39,20 +39,24 @@ class Block:
     def __str__(self):
         return json.dumps(self.to_dict())
 
+    def __eq__(self, other: 'Block'):
+        return self.block_hash == other.block_hash and \
+            self.signature == other.signature
+
     def _to_presigned_dict(self) -> dict:
         # conver to json serializable dictionary that will be hashed and signed
         if self.previous_block is not None:
-            previous_block_hash = binascii.hexlify(
+            previous_block_hash_hex = binascii.hexlify(
                 self.previous_block.block_hash).decode('utf-8')
         else:
-            previous_block_hash = None
+            previous_block_hash_hex = None
 
         # for transactions, use list of transaction hashes
         transaction_hash_hex_list = list(map(
             lambda tx: binascii.hexlify(tx.transaction_hash).decode('utf-8'), self.transaction_list))
 
         return {
-            "previous_block_hash": previous_block_hash,
+            "previous_block_hash_hex": previous_block_hash_hex,
             "transaction_hash_hex_list": transaction_hash_hex_list,
             "validator_public_key_hex": self.validator_public_key_hex.decode('utf-8'),
             "timestamp": self.timestamp.isoformat(),
@@ -115,7 +119,7 @@ class Block:
 def create_block_from_dict(block_dict):
     """ Create a Block instance from input block dict
     block_dict has the following items
-    - previous_block_hash       : bytes
+    - previous_block_hash_hex   : Optional[bytes]
     - transaction_hash_hex_list : List[bytes]
     - validator_public_key_hex  : byte
     - timestamp                 : str
@@ -135,7 +139,7 @@ def create_block_from_dict(block_dict):
     block = Block(
         None,
         transaction_list,
-        block_dict["validator_public_key_hex"],
+        block_dict["validator_public_key_hex"].encode('utf-8'),
         datetime.fromisoformat(block_dict["timestamp"])
     )
     block.signature = signature
