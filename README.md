@@ -94,3 +94,9 @@ $ source venv/bin/activate
 (venv) $ export ADDRESS=http://127.0.0.1:8000
 (venv) $ uvicorn node.main:app --reload --port 8000
 ```
+
+6. To run tests locally, run
+
+```
+(venv) $ python -m unittest discover test/
+```

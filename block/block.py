@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
 
-from transaction.transaction import Transaction
+from transaction.transaction import Transaction, create_transaction_from_dict
 
 
 class Block:
@@ -29,8 +29,6 @@ class Block:
         self.signature = None
 
     def __len__(self):
-        if self.previous_block is None:
-            return 1
         cnt = 1
         current_block = self
         while current_block.previous_block:
@@ -76,6 +74,10 @@ class Block:
         block_dict["block_hash_hex"] = binascii.hexlify(
             self.block_hash).decode('utf-8')
 
+        # add transaction_list
+        block_dict["transaction_dict_list"] = list(
+            map(lambda tx: tx.to_dict(), self.transaction_list))
+
         return block_dict
 
     def get_hash(self):
@@ -108,6 +110,38 @@ class Block:
             transaction.validate()
 
         # TODO: 3. vadliate that the validator got the right amount of reward
+
+
+def create_block_from_dict(block_dict):
+    """ Create a Block instance from input block dict
+    block_dict has the following items
+    - previous_block_hash       : bytes
+    - transaction_hash_hex_list : List[bytes]
+    - validator_public_key_hex  : byte
+    - timestamp                 : str
+    - signature_hex             : Optiona[byte]
+    - block_hash_hex            : byte
+    - transaction_dict_list     : List[dict]
+    """
+    transaction_list = list(map(lambda tx_dict: create_transaction_from_dict(tx_dict),
+                                block_dict["transaction_dict_list"]))
+
+    if block_dict["signature_hex"] is not None:
+        signature_hex = block_dict["signature_hex"].encode('utf-8')
+        signature = binascii.unhexlify(signature_hex)
+    else:
+        signature = None
+
+    block = Block(
+        None,
+        transaction_list,
+        block_dict["validator_public_key_hex"],
+        datetime.fromisoformat(block_dict["timestamp"])
+    )
+    block.signature = signature
+
+    return block
+
 
 # Notes
 

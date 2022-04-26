@@ -10,6 +10,11 @@ from transaction.transaction_type import TransactionContentType, TransactionType
 from utils.crypto import get_public_key_hex
 
 
+class BlockConversionTestCase(unittest.TestCase):
+    def setUp(self):
+        pass
+
+
 class BlockTestCase(unittest.TestCase):
     def setUp(self):
         self.account1 = Account()

@@ -1,8 +1,7 @@
 import unittest
 import binascii
 
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import InvalidSignature
 
 from account.account import Account
@@ -10,7 +9,7 @@ from transaction.transaction import generate_transaction
 from transaction.transaction_type import TransactionType, TransactionContentType
 
 
-class TransactionTestCase(unittest.TestCase):
+class TransactionValidationTestCase(unittest.TestCase):
     def setUp(self):
         self.account1 = Account()
 

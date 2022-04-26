@@ -33,6 +33,13 @@ class TransactionSource:
     def __str__(self):
         return json.dumps(self.to_dict())
 
+    def __eq__(self, other: 'TransactionSource'):
+        return self.source_public_key_hex == other.source_public_key_hex and \
+            self.transaction_type == other.transaction_type and \
+            self.content_type == other.content_type and \
+            self.content_hash == other.content_hash and \
+            self.tx_fee == other.tx_fee
+
     def to_dict(self) -> dict:
         # convert to json serializable dictionary
         if self.content_hash is not None:
@@ -45,7 +52,7 @@ class TransactionSource:
             "source_public_key_hex": self.source_public_key_hex.decode('utf-8'),
             "transaction_type": self.transaction_type,
             "content_type": self.content_type,
-            "content_hash": content_hash_hex,
+            "content_hash_hex": content_hash_hex,
             "tx_fee": self.tx_fee
         }
 
@@ -68,6 +75,12 @@ class TransactionTarget:
     def __str__(self):
         return json.dumps(self.to_dict())
 
+    def __eq__(self, other: 'TransactionTarget'):
+        return self.target_transaction_hash_hex == other.target_transaction_hash_hex and \
+            self.target_public_key_hex == other.target_public_key_hex and \
+            self.tx_token == other.tx_token and \
+            self.tx_object == other.tx_object
+
     def to_dict(self) -> dict:
         # convert to json serializable dictionary
         return {
@@ -85,12 +98,17 @@ class Transaction:
     def __init__(
         self,
         transaction_source: TransactionSource,
-        transaction_target: TransactionTarget
+        transaction_target: TransactionTarget,
+        timestamp: Optional[datetime.datetime] = datetime.datetime.now(
+            datetime.timezone.utc)
     ):
         self.transaction_source = transaction_source
         self.transaction_target = transaction_target
 
-        self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        if timestamp is None:
+            self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        else:
+            self.timestamp = timestamp
 
         # transaction hash is used as an id of the transaction (e.g. finding the post for a comment)
         self.transaction_hash = self.get_hash()
@@ -99,6 +117,10 @@ class Transaction:
 
     def __str__(self):
         return json.dumps(self.to_dict())
+
+    def __eq__(self, other: 'Transaction'):
+        return self.transaction_hash == other.transaction_hash and \
+            self.signature == other.signature
 
     def _to_presigned_dict(self) -> dict:
         # convert to json serializable dictionary that will be hashed and signed
@@ -149,6 +171,58 @@ class Transaction:
     def validate(self) -> None:
         self._verify_transaction()
         # TODO: validate for each transaction type (e.g. TIP more than what an account has)
+
+
+def create_transaction_from_dict(tx_dict: dict) -> Transaction:
+    """ Coverts transaction_dict (generated from to_dict()) to Transaction object.
+    Parameter timestamp is to allow user input for timestamp
+    transaction_dict has the following items
+    - source_public_key_hex       : bytes
+    - transaction_type            : int
+    - content_type                : Optional[TransactionContentType]
+    - content_hash_hex            : Optional[bytes]
+    - tx_fee                      : Optional[float]
+    - target_transaction_hash_hex : Optional[bytes]
+    - target_public_key_hex       : Optional[bytes]
+    - tx_token                    : Optional[float]
+    - tx_object                   : Optional[bytes]
+    - signature_hex               : Optional[bytes]
+    - transaction_hash_hex        : byte
+    - timestamp                   : str
+    """
+    content_type = TransactionContentType(
+        tx_dict["content_type"]
+    ) if tx_dict["content_type"] is not None else None
+
+    if tx_dict["signature_hex"] is not None:
+        signature_hex = tx_dict["signature_hex"].encode('utf-8')
+        signature = binascii.unhexlify(signature_hex)
+    else:
+        signature = None
+
+    transaction_source = TransactionSource(
+        tx_dict["source_public_key_hex"].encode('utf-8'),
+        TransactionType(tx_dict["transaction_type"]),
+        content_type=content_type,
+        content_hash=binascii.unhexlify(
+            tx_dict["content_hash_hex"].encode('utf-8')),
+        tx_fee=tx_dict["tx_fee"]
+    )
+
+    transaction_target = TransactionTarget(
+        target_transaction_hash_hex=tx_dict["target_transaction_hash_hex"],
+        target_public_key_hex=tx_dict["target_public_key_hex"],
+        tx_token=tx_dict["tx_token"],
+        tx_object=tx_dict["tx_object"]
+    )
+
+    transaction = Transaction(
+        transaction_source,
+        transaction_target,
+        timestamp=datetime.datetime.fromisoformat(tx_dict["timestamp"])
+    )
+    transaction.signature = signature
+    return transaction
 
 
 def generate_transaction(

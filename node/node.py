@@ -65,11 +65,12 @@ class Node:
             url = address + constants.BLOCKCHAIN_REQUEST_PATH
             try:
                 r = requests.get(url=url)
-                if self.blockchain is None:
-                    self.blockchain = r.json()
-                else:
-                    if len(self.blockchain) < len(r.json()):
-                        self.blockchain = r.json()
+                # TODO: update blockchain saving mechanism
+                # if self.blockchain is None:
+                #     self.blockchain = r.json()
+                # else:
+                #     if len(self.blockchain) < len(r.json()):
+                #         self.blockchain = r.json()
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
         self.known_node_address_set.difference_update(disconnected_address_set)
