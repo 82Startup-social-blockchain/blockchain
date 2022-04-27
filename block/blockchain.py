@@ -8,7 +8,6 @@ from utils import constants
 
 class Blockchain:
     def __init__(self, head: Optional[Block] = None):
-        # self.file_path = constants.BLOCKCHAIN_STORAGE_FILE_PATH
         self.head = head
 
     def to_dict_list(self) -> List[dict]:
@@ -30,5 +29,7 @@ class Blockchain:
             current_block = create_block_from_dict(block_dict, previous_block)
             previous_block = current_block
         self.head = current_block
+
+    # TODO: add functino to append blocks to head instead of re-initializing
 
     # TODO: add utility function for blockchain e.g. finding specific transaction in the blocks of the chain

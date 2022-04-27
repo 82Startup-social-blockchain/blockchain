@@ -1,7 +1,9 @@
 import json
+import os
 import requests
 
 from block.block import Block
+from block.blockchain import Blockchain
 from transaction.transaction import Transaction
 from utils import constants
 
@@ -65,12 +67,13 @@ class Node:
             url = address + constants.BLOCKCHAIN_REQUEST_PATH
             try:
                 r = requests.get(url=url)
-                # TODO: update blockchain saving mechanism
-                # if self.blockchain is None:
-                #     self.blockchain = r.json()
-                # else:
-                #     if len(self.blockchain) < len(r.json()):
-                #         self.blockchain = r.json()
+                if self.blockchain is None:
+                    self.blockchain = Blockchain()
+                    self.blockchain.from_dict_list(r.json())
+                else:
+                    # TODO: update after head instead of re-initializing
+                    if len(self.blockchain.head) < len(r.json()):
+                        self.blockchain.from_dict_list(r.json())
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
         self.known_node_address_set.difference_update(disconnected_address_set)

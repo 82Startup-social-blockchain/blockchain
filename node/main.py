@@ -1,10 +1,12 @@
+import json
 import os
 from typing import Optional, Dict
 
 from fastapi import FastAPI
-from node.models import NodeAddress
 
 # from models import TransactionRequest
+from block.blockchain import Blockchain
+from node.models import NodeAddress
 from node.node import Node
 from utils import constants
 
@@ -13,10 +15,18 @@ app = FastAPI()
 assert "ADDRESS" in os.environ
 
 node = Node(os.environ["ADDRESS"])
+
+if "INIT_BLOCKCHAIN_FILE_NAME" in os.environ:
+    with open(os.path.join(constants.EXAMPLE_DATA_DIR, os.environ["INIT_BLOCKCHAIN_FILE_NAME"]), 'r') as fp:
+        blockchain_dict_list = json.load(fp)
+    blockchain = Blockchain()
+    blockchain.from_dict_list(blockchain_dict_list)
+    node.blockchain = blockchain
+
 node.join_network()
 
-### Endpoints that other nodes call ###
 
+### Endpoints that other nodes call ###
 
 @app.post("/validation/block")
 async def validate_block():
@@ -53,7 +63,10 @@ async def get_known_nodes():
 @app.get(constants.BLOCKCHAIN_REQUEST_PATH)
 async def get_blockchain():
     # return the current state of blockchain that the node has
-    return node.blockchain
+    if node.blockchain is None:
+        return []
+
+    return node.blockchain.to_dict_list()
 
 
 ### Endpoints that services call ###

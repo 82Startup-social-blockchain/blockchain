@@ -3,7 +3,7 @@ import enum
 
 class TransactionType(enum.IntEnum):
     POST = 1
-    EDIT_POST = 2
+    EDIT_POST = 2  # TODO: edit/delete must be performed by the creator
     DELETE_POST = 3
     COMMENT = 4
     EDIT_COMMENT = 5
@@ -14,7 +14,7 @@ class TransactionType(enum.IntEnum):
     SHARE = 10
     REACT_LIKE = 11
     REPORT = 12
-    TIP = 13
+    PAY = 13
     FOLLOW = 14
     UNFOLLOW = 15
     TRANSFER = 16  # transfer some kind of identifier (e.g. web3 game item)
@@ -23,6 +23,5 @@ class TransactionType(enum.IntEnum):
 
 
 class TransactionContentType(enum.IntEnum):
-    NONE = 0  # if the content does not require content upload
     STRING = 1
     HTML = 2
