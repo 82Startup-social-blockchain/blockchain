@@ -1,5 +1,4 @@
 import json
-import os
 import requests
 
 from block.block import Block
@@ -9,13 +8,11 @@ from utils import constants
 
 
 class Node:
-    def __init__(
-        self,
-        address: str
-    ):
+    def __init__(self, address: str):
         self.address = address
         self.known_node_address_set = self._initialize_known_node_address_set()
         self.blockchain = None
+        self.transaction_pool = []
 
     def _initialize_known_node_address_set(self):
         # TODO: use something better than just json
@@ -95,4 +92,8 @@ class Node:
         pass
 
     def accept_new_block(self, block: Block):
-        pass
+        # 1. Validate block
+        block.validate()
+
+        # 2. Add block to blockchain
+        self.blockchain.add_new_block(block)

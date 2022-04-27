@@ -1,7 +1,7 @@
 import binascii
 import json
 from datetime import datetime
-from typing import Optional, List
+from typing import Dict, Optional, List
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
@@ -116,7 +116,7 @@ class Block:
         # TODO: 3. vadliate that the validator got the right amount of reward
 
 
-def create_block_from_dict(block_dict, previous_block: Optional[Block] = None):
+def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = None):
     """ Create a Block instance from input block dict
     block_dict has the following items
     - previous_block_hash_hex   : Optional[bytes]

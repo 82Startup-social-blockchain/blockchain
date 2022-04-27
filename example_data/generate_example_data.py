@@ -24,6 +24,7 @@ transaction1 = generate_transaction(
     content_type=TransactionContentType.STRING,
     content="Transaction1 - Account1 Post1"
 )
+transaction1.sign_transaction(account1.private_key)
 
 # account1 follow account2
 transaction2 = generate_transaction(
@@ -31,6 +32,7 @@ transaction2 = generate_transaction(
     TransactionType.FOLLOW,
     target_public_key=account2.private_key.public_key()
 )
+transaction2.sign_transaction(account1.private_key)
 
 # account2 follow account1
 transaction3 = generate_transaction(
@@ -38,6 +40,7 @@ transaction3 = generate_transaction(
     TransactionType.FOLLOW,
     target_public_key=account1.private_key.public_key()
 )
+transaction3.sign_transaction(account2.private_key)
 
 # Block1 signed by account1
 block1 = Block(
@@ -55,6 +58,7 @@ transaction4 = generate_transaction(
     TransactionType.FOLLOW,
     target_public_key=account1.private_key.public_key()
 )
+transaction4.sign_transaction(account3.private_key)
 
 # account2 post2
 transaction5 = generate_transaction(
@@ -63,6 +67,7 @@ transaction5 = generate_transaction(
     content_type=TransactionContentType.STRING,
     content="Transaction5 - Account2 Post2"
 )
+transaction5.sign_transaction(account2.private_key)
 
 # account3 comment to post1
 transaction6 = generate_transaction(
@@ -72,6 +77,7 @@ transaction6 = generate_transaction(
     content="Transaction4 - Account1 Post1 Comment1",
     target_transaction_hash=transaction1.transaction_hash
 )
+transaction6.sign_transaction(account1.private_key)
 
 # Block2 signed by account1
 block2 = Block(
@@ -84,14 +90,15 @@ block2.sign_block(account1.private_key)
 
 #### Block3 ####
 
-# account2 pays 0.4 token to account3
+# account3 pays 0.4 token to account2
 transaction7 = generate_transaction(
-    account2.private_key.public_key(),
+    account3.private_key.public_key(),
     TransactionType.PAY,
-    target_public_key=account3.private_key.public_key(),
+    target_public_key=account2.private_key.public_key(),
     tx_token=0.4,
     tx_fee=0.01
 )
+transaction7.sign_transaction(account3.private_key)
 
 # account1 replies to comment1
 transaction8 = generate_transaction(
@@ -101,6 +108,7 @@ transaction8 = generate_transaction(
     content="Transaction8 - Account1 Comment1 Reply1",
     target_transaction_hash=transaction6.transaction_hash
 )
+transaction8.sign_transaction(account1.private_key)
 
 # account2 edits post2
 transaction9 = generate_transaction(
@@ -110,6 +118,7 @@ transaction9 = generate_transaction(
     content="Transaction9 - Account2 Edit Post2",
     target_transaction_hash=transaction5.transaction_hash
 )
+transaction9.sign_transaction(account2.private_key)
 
 # Block3 signed by account2
 block3 = Block(
@@ -118,7 +127,7 @@ block3 = Block(
     get_public_key_hex(account2.private_key.public_key()),
     datetime.utcnow()
 )
-block3.sign_block(account1.private_key)
+block3.sign_block(account2.private_key)
 
 # blockchain with block1, block2
 blockchain_length2 = Blockchain(block2)

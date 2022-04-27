@@ -1,12 +1,14 @@
+import binascii
 import json
 import os
 from typing import Optional, Dict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 # from models import TransactionRequest
+from block.block import Block, create_block_from_dict
 from block.blockchain import Blockchain
-from node.models import NodeAddress
+from node.models import BlockValidationRequest, NodeAddress
 from node.node import Node
 from utils import constants
 
@@ -29,18 +31,34 @@ node.join_network()
 ### Endpoints that other nodes call ###
 
 @app.post("/validation/block")
-async def validate_block():
+async def validate_block(blockRequest: BlockValidationRequest):
     # other nodes hit this endpoint to broadcast block to this node
 
     # 1. create block instance
-    # 2. validate block
-    # 3. add block to blockchain
-    # 4. remove activities from activity pool
-    pass
+    previous_block = None
+    if blockRequest.previous_block_hash_hex is not None:
+        # TODO: what if the block does not reach this node in order?
+        # make a block pool to store candidate blocks
+        # for now, just check if the previous block is head
+        print(node.blockchain.head.block_hash)
+        print(blockRequest.previous_block_hash_hex.encode('utf-8'))
+        if node.blockchain.head.block_hash != binascii.unhexlify(blockRequest.previous_block_hash_hex.encode('utf-8')):
+            raise HTTPException(
+                status_code=409,
+                detail="Requested block is not linked to the current head"
+            )
+        previous_block = node.blockchain.head
+
+    block = create_block_from_dict(blockRequest.dict(), previous_block)
+
+    # 2. add block to blockchain
+    node.accept_new_block(block)
+
+    # TODO: 3. Remove transactions from transaction pool
 
 
 @app.post("/validation/transaction")
-async def validate_activity():
+async def validate_transaction():
     # other nodes hit this endpoint to broadcast transaction to this node
 
     # 1. create Activity instance

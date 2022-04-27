@@ -30,6 +30,10 @@ class Blockchain:
             previous_block = current_block
         self.head = current_block
 
+    def add_new_block(self, block: Block):
+        # assume that input block is validated and previous block is already set to head
+        self.head = block
+
     # TODO: add functino to append blocks to head instead of re-initializing
 
     # TODO: add utility function for blockchain e.g. finding specific transaction in the blocks of the chain
