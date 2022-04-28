@@ -146,7 +146,8 @@ class Node:
                     await client.post(url, headers=headers, json=data)
                 logger.info(
                     f'Broadcasted transaction {transaction_hash_hex} to {address}')
-            except requests.exceptions.ConnectionError:
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
+                logger.info(f"Detected disconnection of {address}")
                 disconnected_address_set.add(address)
 
         self.known_node_address_set.difference_update(
