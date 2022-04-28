@@ -178,7 +178,7 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
     Parameter timestamp is to allow user input for timestamp
     transaction_dict has the following items
     - source_public_key_hex       : bytes
-    - transaction_type            : int
+    - transaction_type            : TransactionType
     - content_type                : Optional[TransactionContentType]
     - content_hash_hex            : Optional[bytes]
     - tx_fee                      : Optional[float]

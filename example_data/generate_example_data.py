@@ -135,9 +135,35 @@ blockchain_length2 = Blockchain(block2)
 # blockchain with block1, block2, block3
 blockchain_length3 = Blockchain(block3)
 
+### Sample Transactions ###
+
+# account3 posts post3
+transaction10 = generate_transaction(
+    account3.private_key.public_key(),
+    TransactionType.POST,
+    content_type=TransactionContentType.STRING,
+    content="Transaction10 - Account3 Post3",
+)
+transaction10.sign_transaction(account3.private_key)
+
+# account2 comments to post3
+transaction11 = generate_transaction(
+    account2.private_key.public_key(),
+    TransactionType.COMMENT,
+    content_type=TransactionContentType.STRING,
+    content="Transcation11 - Account2 Post3 Comment1"
+)
+transaction11.sign_transaction(account2.private_key)
+
 if __name__ == '__main__':
     with open(os.path.join(EXAMPLE_DATA_DIR, "blockchain_length2.json"), 'w') as fp:
         json.dump(blockchain_length2.to_dict_list(), fp)
 
     with open(os.path.join(EXAMPLE_DATA_DIR, "blockchain_length3.json"), 'w') as fp:
         json.dump(blockchain_length3.to_dict_list(), fp)
+
+    with open(os.path.join(EXAMPLE_DATA_DIR, "transaction10.json"), 'w') as fp:
+        json.dump(transaction10.to_dict(), fp)
+
+    with open(os.path.join(EXAMPLE_DATA_DIR, "transaction11.json"), 'w') as fp:
+        json.dump(transaction11.to_dict(), fp)
