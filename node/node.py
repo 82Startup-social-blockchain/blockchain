@@ -1,6 +1,7 @@
 import binascii
 import json
 import logging
+import httpx
 
 import requests
 
@@ -98,12 +99,13 @@ class Node:
         # 3. get blockchain from known nodes
         self._get_longest_blockchain()
 
-    def accept_new_transaction(self, transaction: Transaction, origin: str):
+    async def accept_new_transaction(self, transaction: Transaction, origin: str):
         # TODO: use thread lock because same transaction may come in at the same time
 
         transaction_hash_hex = binascii.hexlify(
             transaction.transaction_hash)
-        logger.info(f"Received transaction {transaction_hash_hex}")
+        logger.info(
+            f"Received transaction {transaction_hash_hex} from {origin}")
 
         # 1. Check if transaction in transaction pool
         if transaction.transaction_hash in self.transaction_pool:
@@ -116,11 +118,11 @@ class Node:
         self.transaction_pool[transaction_hash_hex] = transaction
 
         # 4. Broadcast to other nodes
-        self._broadcast_transaction(transaction, origin)
+        await self._broadcast_transaction(transaction, origin)
 
         # 5. TODO: Add block to blockchain if the condition is met
 
-    def _broadcast_transaction(self, transaction: Transaction, origin: str):
+    async def _broadcast_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(
             transaction.transaction_hash)
 
@@ -139,8 +141,9 @@ class Node:
             try:
                 self.transaction_broadcasted[transaction_hash_hex].add(
                     address)
-                requests.post(url=url, headers=headers, json=data)
-
+                # requests.post(url=url, headers=headers, json=data)
+                async with httpx.AsyncClient() as client:
+                    await client.post(url, headers=headers, json=data)
                 logger.info(
                     f'Broadcasted transaction {transaction_hash_hex} to {address}')
             except requests.exceptions.ConnectionError:

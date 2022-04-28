@@ -61,9 +61,8 @@ async def validate_block(blockRequest: BlockValidationRequest):
     node.accept_new_block(block, origin)
 
 
-# Do not use async for this endpoint because of concurrency issue with async
 @app.post(constants.TRANSACTION_VALIDATION_PATH, response_model=None)
-def validate_transaction(transactionRequest: TransactionValidationRequest):
+async def validate_transaction(transactionRequest: TransactionValidationRequest):
     # other nodes hit this endpoint to broadcast transaction to this node
 
     # 1. create Transaction instance
@@ -73,7 +72,7 @@ def validate_transaction(transactionRequest: TransactionValidationRequest):
     transaction = create_transaction_from_dict(transactionRequest.dict())
 
     # 2. add transaction to transaction pool
-    node.accept_new_transaction(transaction, origin)
+    await node.accept_new_transaction(transaction, origin)
 
 
 @app.post(constants.NODE_REQUEST_PATH, response_model=None)
