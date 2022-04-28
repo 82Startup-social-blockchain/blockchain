@@ -1,16 +1,21 @@
 import binascii
 import json
 import os
-from typing import Optional, Dict
+import logging
+from typing import List, Optional, Dict
 
 from fastapi import FastAPI, HTTPException
 
 # from models import TransactionRequest
 from block.block import Block, create_block_from_dict
 from block.blockchain import Blockchain
-from node.models import BlockValidationRequest, NodeAddress
+from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest
 from node.node import Node
+from transaction.transaction import create_transaction_from_dict
 from utils import constants
+
+FORMAT = "%(levelname)s:     %(message)s"
+logging.basicConfig(format=FORMAT, level=logging.INFO)
 
 app = FastAPI()
 
@@ -30,7 +35,7 @@ node.join_network()
 
 ### Endpoints that other nodes call ###
 
-@app.post("/validation/block")
+@app.post("/validation/block", response_model=None)
 async def validate_block(blockRequest: BlockValidationRequest):
     # other nodes hit this endpoint to broadcast block to this node
 
@@ -40,8 +45,6 @@ async def validate_block(blockRequest: BlockValidationRequest):
         # TODO: what if the block does not reach this node in order?
         # make a block pool to store candidate blocks
         # for now, just check if the previous block is head
-        print(node.blockchain.head.block_hash)
-        print(blockRequest.previous_block_hash_hex.encode('utf-8'))
         if node.blockchain.head.block_hash != binascii.unhexlify(blockRequest.previous_block_hash_hex.encode('utf-8')):
             raise HTTPException(
                 status_code=409,
@@ -49,30 +52,37 @@ async def validate_block(blockRequest: BlockValidationRequest):
             )
         previous_block = node.blockchain.head
 
+    block_dict = blockRequest.dict()
+    origin = block_dict["origin"]
+    del block_dict["origin"]
     block = create_block_from_dict(blockRequest.dict(), previous_block)
 
     # 2. add block to blockchain
-    node.accept_new_block(block)
-
-    # TODO: 3. Remove transactions from transaction pool
+    node.accept_new_block(block, origin)
 
 
-@app.post("/validation/transaction")
-async def validate_transaction():
+# Do not use async for this endpoint because of concurrency issue with async
+@app.post(constants.TRANSACTION_VALIDATION_PATH, response_model=None)
+def validate_transaction(transactionRequest: TransactionValidationRequest):
     # other nodes hit this endpoint to broadcast transaction to this node
 
-    # 1. create Activity instance
-    # 2. add activity to activity pool
-    pass
+    # 1. create Transaction instance
+    transaction_dict = transactionRequest.dict()
+    origin = transaction_dict["origin"]
+    del transaction_dict["origin"]
+    transaction = create_transaction_from_dict(transactionRequest.dict())
+
+    # 2. add transaction to transaction pool
+    node.accept_new_transaction(transaction, origin)
 
 
-@app.post(constants.NODE_REQUEST_PATH)
+@app.post(constants.NODE_REQUEST_PATH, response_model=None)
 async def accept_new_node(data: NodeAddress):
     # add the new node to known node address list
     node.accept_new_node(data.address)
 
 
-@app.get(constants.KNOWN_NODES_PATH)
+@app.get(constants.KNOWN_NODES_PATH, response_model=List[str])
 async def get_known_nodes():
     # return known nodes
     return list(node.known_node_address_set)
@@ -85,6 +95,12 @@ async def get_blockchain():
         return []
 
     return node.blockchain.to_dict_list()
+
+
+@app.get("/transaction-pool")
+async def get_transaction_pool():
+    return {tx_hash_hex.decode('utf-8'): node.transaction_pool[tx_hash_hex]
+            for tx_hash_hex in node.transaction_pool}
 
 
 ### Endpoints that services call ###

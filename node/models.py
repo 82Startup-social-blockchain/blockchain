@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Any, Optional, List
 
 from pydantic import BaseModel
 
@@ -15,19 +15,24 @@ class BlockValidationRequest(BaseModel):
     block_hash_hex: str                     # bytes decoded to str
     transaction_dict_list: List[dict]
 
+    origin: str                             # address of origin
 
-class TransactionRequest(BaseModel):
-    # parent transaction or the recipient
-    # target_transaction_hash: Optional[str]
-    # target_public_key: Optional[str]
 
-    # amount: Optional[float]
+class TransactionValidationRequest(BaseModel):
+    source_public_key_hex: Optional[str]            # bytes decoded to str
+    transaction_type: TransactionType               # int
+    content_type: Optional[TransactionContentType]  # int
+    content_hash_hex: Optional[str]                 # bytes decoded to str
+    tx_fee: Optional[float]                         # float
+    target_transaction_hash_hex: Optional[str]      # bytes decoded to str
+    target_public_key_hex: Optional[str]            # bytes decoded to str
+    tx_token: Optional[float]                       # float
+    tx_object: Optional[Any]                        # any type (not decided)
+    signature_hex: Optional[str]                    # bytes decoded to str
+    transaction_hash_hex: str                       # bytes decoded to str
+    timestamp: str                                  # timestamp in isoformat
 
-    # public_key: str
-
-    # content_type: Optional[TransactionContentType]
-    # content: Optional[str]  # react does not have content
-    pass
+    origin: str                                     # address of origin
 
 
 class NodeAddress(BaseModel):

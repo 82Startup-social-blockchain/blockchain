@@ -1,4 +1,7 @@
+import binascii
 import json
+import logging
+
 import requests
 
 from block.block import Block
@@ -7,12 +10,17 @@ from transaction.transaction import Transaction
 from utils import constants
 
 
+logger = logging.getLogger(__name__)
+
+
 class Node:
     def __init__(self, address: str):
         self.address = address
         self.known_node_address_set = self._initialize_known_node_address_set()
         self.blockchain = None
-        self.transaction_pool = []
+
+        self.transaction_pool = dict()  # { transaction_hash_hex: Transaction }
+        self.transaction_broadcasted = dict()  # { transactino_hash_hex: set }
 
     def _initialize_known_node_address_set(self):
         # TODO: use something better than just json
@@ -51,6 +59,7 @@ class Node:
             headers = {"Content-Type": "application/json"}
             try:
                 requests.post(url=url, json=data, headers=headers)
+                logger.info(f"Advertised to node {address}")
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
 
@@ -76,6 +85,7 @@ class Node:
         self.known_node_address_set.difference_update(disconnected_address_set)
 
     def accept_new_node(self, address: str):
+        logger.info(f"Accepted node {address}")
         self.known_node_address_set.add(address)
 
     def join_network(self):
@@ -88,12 +98,66 @@ class Node:
         # 3. get blockchain from known nodes
         self._get_longest_blockchain()
 
-    def accept_new_transaction(self, transaction: Transaction):
-        pass
+    def accept_new_transaction(self, transaction: Transaction, origin: str):
+        # TODO: use thread lock because same transaction may come in at the same time
 
-    def accept_new_block(self, block: Block):
+        transaction_hash_hex = binascii.hexlify(
+            transaction.transaction_hash)
+        logger.info(f"Received transaction {transaction_hash_hex}")
+
+        # 1. Check if transaction in transaction pool
+        if transaction.transaction_hash in self.transaction_pool:
+            return None
+
+        # 2. Validate transaction
+        transaction.validate()
+
+        # 3. Add to transaction pool
+        self.transaction_pool[transaction_hash_hex] = transaction
+
+        # 4. Broadcast to other nodes
+        self._broadcast_transaction(transaction, origin)
+
+        # 5. TODO: Add block to blockchain if the condition is met
+
+    def _broadcast_transaction(self, transaction: Transaction, origin: str):
+        transaction_hash_hex = binascii.hexlify(
+            transaction.transaction_hash)
+
+        # add transaction to broadcasted set
+        if transaction_hash_hex not in self.transaction_broadcasted:
+            self.transaction_broadcasted[transaction_hash_hex] = set([])
+
+        disconnected_address_set = set([])
+        for address in self.known_node_address_set:
+            if address == origin or address in self.transaction_broadcasted[transaction_hash_hex]:
+                continue
+            url = address + constants.TRANSACTION_VALIDATION_PATH
+            headers = {"Content-type": "application/json"}
+            data = transaction.to_dict()
+            data["origin"] = self.address
+            try:
+                self.transaction_broadcasted[transaction_hash_hex].add(
+                    address)
+                requests.post(url=url, headers=headers, json=data)
+
+                logger.info(
+                    f'Broadcasted transaction {transaction_hash_hex} to {address}')
+            except requests.exceptions.ConnectionError:
+                disconnected_address_set.add(address)
+
+        self.known_node_address_set.difference_update(
+            disconnected_address_set)
+
+    def accept_new_block(self, block: Block, origin: str):
+        # TODO: use thread lock because same block may come in at the same time
+
         # 1. Validate block
         block.validate()
 
-        # 2. Add block to blockchain
+        # 2. Add block to blockchain - TODO: change mechanism with POS
         self.blockchain.add_new_block(block)
+
+        # 3. TODO: remove transactions from transaction pool
+
+        # 4. Broadcast
