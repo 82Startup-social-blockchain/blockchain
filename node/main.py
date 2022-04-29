@@ -16,6 +16,7 @@ from utils import constants
 
 FORMAT = "%(levelname)s:     %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -35,7 +36,7 @@ node.join_network()
 
 ### Endpoints that other nodes call ###
 
-@app.post("/validation/block", response_model=None)
+@app.post(constants.BLOCK_VALIDATION_PATH, response_model=None)
 async def validate_block(blockRequest: BlockValidationRequest):
     # other nodes hit this endpoint to broadcast block to this node
 
@@ -46,6 +47,7 @@ async def validate_block(blockRequest: BlockValidationRequest):
         # make a block pool to store candidate blocks
         # for now, just check if the previous block is head
         if node.blockchain.head.block_hash != binascii.unhexlify(blockRequest.previous_block_hash_hex.encode('utf-8')):
+            logger.error("Requested block is not linked to the current head")
             raise HTTPException(
                 status_code=409,
                 detail="Requested block is not linked to the current head"
@@ -58,7 +60,8 @@ async def validate_block(blockRequest: BlockValidationRequest):
     block = create_block_from_dict(blockRequest.dict(), previous_block)
 
     # 2. add block to blockchain
-    node.accept_new_block(block, origin)
+    logger.info("Adding new block to blockchain")
+    await node.accept_new_block(block, origin)
 
 
 @app.post(constants.TRANSACTION_VALIDATION_PATH, response_model=None)
@@ -98,8 +101,8 @@ async def get_blockchain():
 
 @app.get("/transaction-pool")
 async def get_transaction_pool():
-    return {tx_hash_hex.decode('utf-8'): node.transaction_pool[tx_hash_hex]
-            for tx_hash_hex in node.transaction_pool}
+    return {tx_hash_hex.decode('utf-8'): tx.to_dict()
+            for tx_hash_hex, tx in node.transaction_pool.items()}
 
 
 ### Endpoints that services call ###

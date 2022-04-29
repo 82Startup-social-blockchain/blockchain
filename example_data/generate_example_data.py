@@ -155,12 +155,34 @@ transaction11 = generate_transaction(
 )
 transaction11.sign_transaction(account2.private_key)
 
+# account2 sends token to account1
+transaction12 = generate_transaction(
+    account2.private_key.public_key(),
+    TransactionType.TRANSFER,
+    tx_fee=0.01,
+    target_public_key=account1.private_key.public_key(),
+    tx_token=1.2
+)
+transaction12.sign_transaction(account2.private_key)
+
+# Block4 signed by account1
+block4 = Block(
+    block3,
+    [transaction10, transaction11, transaction12],
+    get_public_key_hex(account1.private_key.public_key()),
+    datetime.utcnow()
+)
+block4.sign_block(account1.private_key)
+
 if __name__ == '__main__':
     with open(os.path.join(EXAMPLE_DATA_DIR, "blockchain_length2.json"), 'w') as fp:
         json.dump(blockchain_length2.to_dict_list(), fp)
 
     with open(os.path.join(EXAMPLE_DATA_DIR, "blockchain_length3.json"), 'w') as fp:
         json.dump(blockchain_length3.to_dict_list(), fp)
+
+    with open(os.path.join(EXAMPLE_DATA_DIR, "block4.json"), 'w') as fp:
+        json.dump(block4.to_dict(), fp)
 
     with open(os.path.join(EXAMPLE_DATA_DIR, "transaction10.json"), 'w') as fp:
         json.dump(transaction10.to_dict(), fp)

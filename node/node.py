@@ -1,3 +1,4 @@
+import asyncio
 import binascii
 import json
 import logging
@@ -22,6 +23,9 @@ class Node:
 
         self.transaction_pool = dict()  # { transaction_hash_hex: Transaction }
         self.transaction_broadcasted = dict()  # { transactino_hash_hex: set }
+        self.block_broadcasted = dict()  # { block_hash_hex: set }
+
+        self.lock = asyncio.Lock()
 
     def _initialize_known_node_address_set(self):
         # TODO: use something better than just json
@@ -100,22 +104,22 @@ class Node:
         self._get_longest_blockchain()
 
     async def accept_new_transaction(self, transaction: Transaction, origin: str):
-        # TODO: use thread lock because same transaction may come in at the same time
-
         transaction_hash_hex = binascii.hexlify(
             transaction.transaction_hash)
         logger.info(
             f"Received transaction {transaction_hash_hex} from {origin}")
 
         # 1. Check if transaction in transaction pool
-        if transaction.transaction_hash in self.transaction_pool:
-            return None
+        async with self.lock:
+            if transaction.transaction_hash in self.transaction_pool:
+                return None
 
         # 2. Validate transaction
         transaction.validate()
 
         # 3. Add to transaction pool
-        self.transaction_pool[transaction_hash_hex] = transaction
+        async with self.lock:
+            self.transaction_pool[transaction_hash_hex] = transaction
 
         # 4. Broadcast to other nodes
         await self._broadcast_transaction(transaction, origin)
@@ -127,9 +131,11 @@ class Node:
             transaction.transaction_hash)
 
         # add transaction to broadcasted set
-        if transaction_hash_hex not in self.transaction_broadcasted:
-            self.transaction_broadcasted[transaction_hash_hex] = set([])
+        async with self.lock:
+            if transaction_hash_hex not in self.transaction_broadcasted:
+                self.transaction_broadcasted[transaction_hash_hex] = set([])
 
+        # send transcation data to other nodes
         disconnected_address_set = set([])
         for address in self.known_node_address_set:
             if address == origin or address in self.transaction_broadcasted[transaction_hash_hex]:
@@ -139,8 +145,9 @@ class Node:
             data = transaction.to_dict()
             data["origin"] = self.address
             try:
-                self.transaction_broadcasted[transaction_hash_hex].add(
-                    address)
+                async with self.lock:
+                    self.transaction_broadcasted[transaction_hash_hex].add(
+                        address)
                 # requests.post(url=url, headers=headers, json=data)
                 async with httpx.AsyncClient() as client:
                     await client.post(url, headers=headers, json=data)
@@ -150,18 +157,61 @@ class Node:
                 logger.info(f"Detected disconnection of {address}")
                 disconnected_address_set.add(address)
 
-        self.known_node_address_set.difference_update(
-            disconnected_address_set)
+        async with self.lock:
+            self.known_node_address_set.difference_update(
+                disconnected_address_set)
 
-    def accept_new_block(self, block: Block, origin: str):
-        # TODO: use thread lock because same block may come in at the same time
+    async def accept_new_block(self, block: Block, origin: str):
+        block_hash_hex = binascii.hexlify(block.block_hash)
+        logger.info(f"Received transaction {block_hash_hex} from {origin}")
 
         # 1. Validate block
         block.validate()
 
-        # 2. Add block to blockchain - TODO: change mechanism with POS
-        self.blockchain.add_new_block(block)
+        # 2. TODO: take action is the block is invalid (slashing)
+
+        # 3. Add block to blockchain
+        async with self.lock:
+            self.blockchain.add_new_block(block)
 
         # 3. TODO: remove transactions from transaction pool
+        async with self.lock:
+            for transaction in block.transaction_list:
+                transaction_hash_hex = binascii.hexlify(
+                    transaction.transaction_hash)
+                self.transaction_pool.pop(transaction_hash_hex, None)
+                self.transaction_broadcasted.pop(transaction_hash_hex, None)
 
         # 4. Broadcast
+        await self._broadcast_block(block, origin)
+
+    async def _broadcast_block(self, block: Block, origin: str):
+        block_hash_hex = binascii.hexlify(block.block_hash)
+
+        # add block to block_hash_hex to address set dict
+        async with self.lock:
+            if block_hash_hex not in self.block_broadcasted:
+                self.block_broadcasted[block_hash_hex] = set([])
+
+        # send block data to other nodes
+        disconnected_address_set = set([])
+        for address in self.known_node_address_set:
+            if address == origin or address in self.block_broadcasted[block_hash_hex]:
+                continue
+            url = address + constants.BLOCK_VALIDATION_PATH
+            headers = {"Content-type": "application/json"}
+            data = block.to_dict()
+            data["origin"] = self.address
+            try:
+                async with self.lock:
+                    self.block_broadcasted[block_hash_hex].add(address)
+                async with httpx.AsyncClient() as client:
+                    await client.post(url, headers=headers, json=data)
+                logger.info(f'Broadcasted block {block_hash_hex} to {address}')
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
+                logger.info(f"Detected disconnection of {address}")
+                disconnected_address_set.add(address)
+
+        async with self.lock:
+            self.known_node_address_set.difference_update(
+                disconnected_address_set)
