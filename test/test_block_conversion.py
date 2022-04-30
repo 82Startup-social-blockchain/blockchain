@@ -1,9 +1,9 @@
 import unittest
 from datetime import datetime
 
-from account.account import Account
 from block.block import Block, create_block_from_dict
 from block.blockchain import Blockchain
+from example_data.example_account import ExampleAccount
 from transaction.transaction import generate_transaction
 from transaction.transaction_type import TransactionContentType, TransactionType
 from utils.crypto import get_public_key_hex
@@ -11,8 +11,8 @@ from utils.crypto import get_public_key_hex
 
 class BlockConversionTestCase(unittest.TestCase):
     def setUp(self):
-        self.account1 = Account()
-        self.account2 = Account()
+        self.account1 = ExampleAccount()
+        self.account2 = ExampleAccount()
 
         self.transaction1 = generate_transaction(
             self.account1.private_key.public_key(),

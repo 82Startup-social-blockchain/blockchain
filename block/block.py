@@ -6,6 +6,7 @@ from typing import Dict, Optional, List
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
+from account.account import Account
 
 from transaction.transaction import Transaction, create_transaction_from_dict
 
@@ -24,7 +25,7 @@ class Block:
         self.validator_public_key_hex = validator_public_key_hex
 
         # block hash is used as an id of the block
-        self.block_hash = self.get_hash()
+        self.block_hash = self._get_hash()
 
         self.signature = None
 
@@ -84,7 +85,7 @@ class Block:
 
         return block_dict
 
-    def get_hash(self):
+    def _get_hash(self):
         digest = hashes.Hash(hashes.SHA256())
         digest.update(json.dumps(self._to_presigned_dict()).encode('utf-8'))
         return digest.finalize()
@@ -114,6 +115,9 @@ class Block:
             transaction.validate()
 
         # TODO: 3. vadliate that the validator got the right amount of reward
+
+    def update_account(account: Account):
+        pass
 
 
 def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = None):

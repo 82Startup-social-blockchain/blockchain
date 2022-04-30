@@ -111,7 +111,7 @@ class Transaction:
             self.timestamp = timestamp
 
         # transaction hash is used as an id of the transaction (e.g. finding the post for a comment)
-        self.transaction_hash = self.get_hash()
+        self.transaction_hash = self._get_hash()
 
         self.signature = None
 
@@ -147,7 +147,7 @@ class Transaction:
 
         return tx_dict
 
-    def get_hash(self) -> bytes:
+    def _get_hash(self) -> bytes:
         digest = hashes.Hash(hashes.SHA256())
         digest.update(json.dumps(self._to_presigned_dict()).encode('utf-8'))
         return digest.finalize()

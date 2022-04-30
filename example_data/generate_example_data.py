@@ -3,17 +3,17 @@ from datetime import datetime
 import json
 import os
 
-from account.account import Account
 from block.block import Block
 from block.blockchain import Blockchain
+from example_data.example_account import ExampleAccount
 from transaction.transaction import generate_transaction
 from transaction.transaction_type import TransactionContentType, TransactionType
 from utils.constants import EXAMPLE_DATA_DIR
 from utils.crypto import get_public_key_hex
 
-account1 = Account()
-account2 = Account()
-account3 = Account()
+account1 = ExampleAccount()
+account2 = ExampleAccount()
+account3 = ExampleAccount()
 
 #### Block1 ####
 

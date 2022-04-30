@@ -5,10 +5,12 @@ import logging
 import httpx
 
 import requests
+from account.account import Account
 
 from block.block import Block
 from block.blockchain import Blockchain
 from transaction.transaction import Transaction
+from transaction.transaction_type import TransactionType
 from utils import constants
 
 
@@ -24,6 +26,8 @@ class Node:
         self.transaction_pool = dict()  # { transaction_hash_hex: Transaction }
         self.transaction_broadcasted = dict()  # { transactino_hash_hex: set }
         self.block_broadcasted = dict()  # { block_hash_hex: set }
+
+        self.account_dict = dict()  # { account_public_key_hex: Account }
 
         self.lock = asyncio.Lock()
 
@@ -88,6 +92,29 @@ class Node:
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
         self.known_node_address_set.difference_update(disconnected_address_set)
+        self._initialize_accounts()
+
+    def _initialize_accounts(self):
+        curr_block = self.blockchain.head
+        while curr_block is not None:
+            for tx in curr_block.transaction_list:
+                public_key_hex = tx.transaction_source.source_public_key_hex
+                target_public_key_hex = tx.transaction_target.target_public_key_hex
+                tx_type = tx.transaction_source.transaction_type
+
+                if public_key_hex not in self.account_dict:
+                    self.account_dict[public_key_hex] = Account(public_key_hex)
+                if target_public_key_hex is not None and target_public_key_hex not in self.account_dict:
+                    self.account_dict[target_public_key_hex] = Account(
+                        target_public_key_hex)
+
+                if tx_type == TransactionType.STAKE:
+                    self.account_dict[public_key_hex] += tx.transaction_target.tx_token
+                elif tx_type == TransactionType.TRANSFER:
+                    self.account_dict[target_public_key_hex] += tx.transaction_target.tx_token
+                    self.account_dict[public_key_hex] -= tx.transaction_target.tx_token
+
+            curr_block = curr_block.previous_block
 
     def accept_new_node(self, address: str):
         logger.info(f"Accepted node {address}")

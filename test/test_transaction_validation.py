@@ -4,14 +4,14 @@ import binascii
 from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import InvalidSignature
 
-from account.account import Account
+from example_data.example_account import ExampleAccount
 from transaction.transaction import generate_transaction
 from transaction.transaction_type import TransactionType, TransactionContentType
 
 
 class TransactionValidationTestCase(unittest.TestCase):
     def setUp(self):
-        self.account1 = Account()
+        self.account1 = ExampleAccount()
 
     def test_valid_signature(self):
         transaction = generate_transaction(
@@ -39,7 +39,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         transaction.transaction_target.tx_token = None
 
         # manipulate transaction data - transaction source data
-        account2 = Account()
+        account2 = ExampleAccount()
         new_public_key = account2.private_key.public_key()
         new_public_key_hex = binascii.hexlify(
             new_public_key.public_bytes(
