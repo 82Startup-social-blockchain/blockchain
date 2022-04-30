@@ -82,6 +82,8 @@ class Node:
             url = address + constants.BLOCKCHAIN_REQUEST_PATH
             try:
                 r = requests.get(url=url)
+                if len(r.json()) == 0:
+                    continue
                 if self.blockchain is None:
                     self.blockchain = Blockchain()
                     self.blockchain.from_dict_list(r.json())
@@ -101,6 +103,7 @@ class Node:
                 public_key_hex = tx.transaction_source.source_public_key_hex
                 target_public_key_hex = tx.transaction_target.target_public_key_hex
                 tx_type = tx.transaction_source.transaction_type
+                tx_fee = tx.transaction_source.tx_fee
 
                 if public_key_hex not in self.account_dict:
                     self.account_dict[public_key_hex] = Account(public_key_hex)
@@ -109,10 +112,13 @@ class Node:
                         target_public_key_hex)
 
                 if tx_type == TransactionType.STAKE:
-                    self.account_dict[public_key_hex] += tx.transaction_target.tx_token
+                    self.account_dict[public_key_hex].stake += tx.transaction_target.tx_token
                 elif tx_type == TransactionType.TRANSFER:
-                    self.account_dict[target_public_key_hex] += tx.transaction_target.tx_token
-                    self.account_dict[public_key_hex] -= tx.transaction_target.tx_token
+                    self.account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
+                    self.account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+
+                if tx_fee is not None:
+                    self.account_dict[public_key_hex].balance -= tx_fee
 
             curr_block = curr_block.previous_block
 

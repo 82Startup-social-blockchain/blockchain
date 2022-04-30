@@ -13,7 +13,7 @@ class TransactionType(enum.IntEnum):
     DELETE_REPLY = 9
     SHARE = 10
     REACT_LIKE = 11
-    REPORT = 12
+    REPORT = 12  # have minimum fee
     PAY = 13
     FOLLOW = 14
     UNFOLLOW = 15
