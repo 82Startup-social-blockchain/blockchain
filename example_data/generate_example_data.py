@@ -90,10 +90,10 @@ block2.sign_block(account1.private_key)
 
 #### Block3 ####
 
-# account3 pays 0.4 token to account2
+# account3 tips 0.4 token to account2
 transaction7 = generate_transaction(
     account3.private_key.public_key(),
-    TransactionType.PAY,
+    TransactionType.TIP,
     target_public_key=account2.private_key.public_key(),
     tx_token=0.4,
     tx_fee=0.01

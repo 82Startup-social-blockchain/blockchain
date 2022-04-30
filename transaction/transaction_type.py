@@ -14,7 +14,7 @@ class TransactionType(enum.IntEnum):
     SHARE = 10
     REACT_LIKE = 11
     REPORT = 12  # have minimum fee
-    PAY = 13
+    TIP = 13
     FOLLOW = 14
     UNFOLLOW = 15
     TRANSFER = 16  # transfer some kind of identifier (e.g. web3 game item)

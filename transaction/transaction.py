@@ -6,6 +6,9 @@ import json
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
+from account.account import Account
+
+from transaction.transaction_validation import TransactionValidation
 
 from .transaction_type import TransactionType, TransactionContentType
 from utils.crypto import get_public_key_hex
@@ -168,9 +171,13 @@ class Transaction:
         public_key.verify(self.signature, json.dumps(self._to_presigned_dict()).encode('utf-8'),
                           ec.ECDSA(hashes.SHA256()))
 
-    def validate(self) -> None:
+    def validate(self, account: Account) -> None:
+        # verify transactino signature
         self._verify_transaction()
-        # TODO: validate for each transaction type (e.g. TIP more than what an account has)
+
+        # validate the transaction itself
+        transaction_validation = TransactionValidation(self, account)
+        transaction_validation.run()
 
 
 def create_transaction_from_dict(tx_dict: dict) -> Transaction:
