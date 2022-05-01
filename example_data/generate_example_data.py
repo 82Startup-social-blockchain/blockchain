@@ -5,15 +5,15 @@ import os
 
 from block.block import Block
 from block.blockchain import Blockchain
-from example_data.example_account import ExampleAccount
-from transaction.transaction import generate_transaction
+from account.account_full import FullAccount
 from transaction.transaction_type import TransactionContentType, TransactionType
+from transaction.transaction_utils import generate_transaction
 from utils.constants import EXAMPLE_DATA_DIR
 from utils.crypto import get_public_key_hex
 
-account1 = ExampleAccount()
-account2 = ExampleAccount()
-account3 = ExampleAccount()
+account1 = FullAccount()
+account2 = FullAccount()
+account3 = FullAccount()
 
 #### Block1 ####
 

@@ -6,9 +6,10 @@ from typing import Dict, Optional, List
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
-from account.account import Account
 
-from transaction.transaction import Transaction, create_transaction_from_dict
+from account.account import Account
+from transaction.transaction import Transaction
+from transaction.transaction_utils import create_transaction_from_dict
 
 
 class Block:
@@ -101,10 +102,13 @@ class Block:
             raise InvalidSignature
         public_key_hex = binascii.unhexlify(self.validator_public_key_hex)
         public_key = serialization.load_der_public_key(public_key_hex)
-        public_key.verify(self.signature, json.dumps(self._to_presigned_dict()).encode('utf-8'),
-                          ec.ECDSA(hashes.SHA256()))
+        public_key.verify(
+            self.signature,
+            json.dumps(self._to_presigned_dict()).encode('utf-8'),
+            ec.ECDSA(hashes.SHA256())
+        )
 
-    def validate(self):
+    def validate(self, account_dict: Dict[str, Account]):
         # If the block is invalid, throw InvalidSignature exception
 
         # 1. verify the block signature
@@ -112,9 +116,12 @@ class Block:
 
         # 2. validate all the transactions
         for transaction in self.transaction_list:
-            transaction.validate()
+            tx_publick_key_hex = transaction.transaction_source.source_public_key_hex
+            transaction.validate(account_dict.get(tx_publick_key_hex, None))
 
-        # TODO: 3. vadliate that the validator got the right amount of reward
+        # TODO: 3. validate that type is not ICO if it's not the first block
+
+        # TODO: 4. vadliate that the validator got the right amount of reward
 
     def update_account(account: Account):
         pass

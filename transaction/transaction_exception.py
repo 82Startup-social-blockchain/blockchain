@@ -13,7 +13,7 @@ class TransactionValidationError(Exception):
             error_message = f"{base_message} - {message}"
         else:
             error_message = base_message
-        super().__init__(message=error_message)
+        super().__init__(error_message)
 
 
 class TransactionStakeError(TransactionValidationError):
@@ -34,10 +34,19 @@ class TransactionTransferError(TransactionValidationError):
         super().__init__(transaction, message=message)
 
 
-class TransactionPayError(TransactionValidationError):
+class TransactionTipError(TransactionValidationError):
     def __init__(
         self,
         transaction: Transaction,
-        message="Pay amount higher than balance"
+        message="Tip amount higher than balance"
+    ):
+        super().__init__(transaction, message=message)
+
+
+class TransactionIcoError(TransactionValidationError):
+    def __init__(
+        self,
+        transaction: Transaction,
+        message="Invalid account for ICO"
     ):
         super().__init__(transaction, message=message)

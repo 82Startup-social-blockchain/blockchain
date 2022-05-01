@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 # example account class where account has private key as a property
 # it is more like utility class for testing.
-class ExampleAccount:
+class FullAccount:
     def __init__(
         self,
         private_key: Optional[ec.EllipticCurvePrivateKey] = None

@@ -3,15 +3,16 @@ import binascii
 
 from cryptography.hazmat.primitives import hashes
 
-from example_data.example_account import ExampleAccount
-from transaction.transaction import create_transaction_from_dict, generate_transaction
+from account.account_full import FullAccount
+from transaction.transaction_utils import create_transaction_from_dict, \
+    generate_transaction
 from transaction.transaction_type import TransactionType, TransactionContentType
 from utils.crypto import get_public_key_hex
 
 
 class TransactionConversionTestCase(unittest.TestCase):
     def setUp(self):
-        self.account1 = ExampleAccount()
+        self.account1 = FullAccount()
         content = "Random content"
         content_digest = hashes.Hash(hashes.SHA256())
         content_digest.update(content.encode('utf-8'))

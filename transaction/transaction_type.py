@@ -19,6 +19,7 @@ class TransactionType(enum.IntEnum):
     UNFOLLOW = 15
     TRANSFER = 16  # transfer some kind of identifier (e.g. web3 game item)
     STAKE = 17
+    ICO = 18
 
     # TODO: add more react types, report?, make it a token? (co-ownership)
 

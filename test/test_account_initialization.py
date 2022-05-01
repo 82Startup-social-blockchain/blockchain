@@ -5,19 +5,19 @@ from block.block import Block
 from block.blockchain import Blockchain
 
 
-from example_data.example_account import ExampleAccount
+from account.account_full import FullAccount
 from test.test_node import TestNode
-from transaction.transaction import generate_transaction
 from transaction.transaction_type import TransactionContentType, TransactionType
+from transaction.transaction_utils import generate_transaction
 from utils.crypto import get_public_key_hex
 
 
 class AccountInitialization(unittest.TestCase):
     def setUp(self):
-        self.account1 = ExampleAccount()
-        self.account2 = ExampleAccount()
-        self.account3 = ExampleAccount()
-        self.account4 = ExampleAccount()
+        self.account1 = FullAccount()
+        self.account2 = FullAccount()
+        self.account3 = FullAccount()
+        self.account4 = FullAccount()
         self.accounts = [
             self.account1, self.account2, self.account3, self.account4
         ]

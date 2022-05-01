@@ -128,4 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Virtual environment
 venv/
+
+# VS code
+.vscode/
+
+# Runtime generated config files
+genesis/ico_accounts.json

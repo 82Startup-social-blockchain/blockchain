@@ -4,16 +4,16 @@ import unittest
 from cryptography.exceptions import InvalidSignature
 
 from block.block import Block
-from example_data.example_account import ExampleAccount
-from transaction.transaction import generate_transaction
+from account.account_full import FullAccount
 from transaction.transaction_type import TransactionContentType, TransactionType
+from transaction.transaction_utils import generate_transaction
 from utils.crypto import get_public_key_hex
 
 
 class BlockValidationTestCase(unittest.TestCase):
     def setUp(self):
-        self.account1 = ExampleAccount()
-        self.account2 = ExampleAccount()
+        self.account1 = FullAccount()
+        self.account2 = FullAccount()
 
         self.transaction1 = generate_transaction(
             self.account1.private_key.public_key(),

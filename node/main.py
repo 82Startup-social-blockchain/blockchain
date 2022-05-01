@@ -3,15 +3,17 @@ import json
 import os
 import logging
 from typing import List, Optional, Dict
+import asyncio
 
 from fastapi import FastAPI, HTTPException
 
 # from models import TransactionRequest
 from block.block import Block, create_block_from_dict
 from block.blockchain import Blockchain
+from genesis.initial_block import create_initial_block
 from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest
 from node.node import Node
-from transaction.transaction import create_transaction_from_dict
+from transaction.transaction_utils import create_transaction_from_dict
 from utils import constants
 
 FORMAT = "%(levelname)s:     %(message)s"
@@ -33,10 +35,16 @@ if "INIT_BLOCKCHAIN_FILE_NAME" in os.environ:
 
 node.join_network()
 
+# if node does not have blockchain initialize genesis block that has ICO details
+if node.blockchain is None or node.blockchain.head is None:
+    block = create_initial_block()
+    node.initialize_ico_accounts(constants.ICO_PUBLIC_KEY_FILE)
+    node.initialize_ico_block(block)
+
 
 ### Endpoints that other nodes call ###
 
-@app.post(constants.BLOCK_VALIDATION_PATH, response_model=None)
+@ app.post(constants.BLOCK_VALIDATION_PATH, response_model=None)
 async def validate_block(blockRequest: BlockValidationRequest):
     # other nodes hit this endpoint to broadcast block to this node
 
@@ -97,6 +105,11 @@ async def get_blockchain():
         return []
 
     return node.blockchain.to_dict_list()
+
+
+@app.get(constants.ACCOUNTS_PATH)
+async def get_accounts():
+    pass
 
 
 @app.get("/transaction-pool")

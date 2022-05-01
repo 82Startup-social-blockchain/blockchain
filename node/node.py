@@ -28,6 +28,7 @@ class Node:
         self.block_broadcasted = dict()  # { block_hash_hex: set }
 
         self.account_dict = dict()  # { account_public_key_hex: Account }
+        self.ico_accounts = set([])  # set of ico account_public_key_hex
 
         self.lock = asyncio.Lock()
 
@@ -82,21 +83,32 @@ class Node:
             url = address + constants.BLOCKCHAIN_REQUEST_PATH
             try:
                 r = requests.get(url=url)
-                if len(r.json()) == 0:
-                    continue
                 if self.blockchain is None:
                     self.blockchain = Blockchain()
+                    # if r.json() is empty list => blockchain has head None
                     self.blockchain.from_dict_list(r.json())
+                    # validate blockchain
+                    try:
+                        self.blockchain.head.validate()
+                    except:
+                        self.blockchain = None
                 else:
                     # TODO: update after head instead of re-initializing
                     if len(self.blockchain.head) < len(r.json()):
                         self.blockchain.from_dict_list(r.json())
+                        try:
+                            self.blockchain.head.validate()
+                        except:
+                            self.blockchain = None
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
+
         self.known_node_address_set.difference_update(disconnected_address_set)
         self._initialize_accounts()
 
     def _initialize_accounts(self):
+        if self.blockchain is None:
+            return
         curr_block = self.blockchain.head
         while curr_block is not None:
             for tx in curr_block.transaction_list:
@@ -108,19 +120,24 @@ class Node:
                 if public_key_hex not in self.account_dict:
                     self.account_dict[public_key_hex] = Account(public_key_hex)
                 if target_public_key_hex is not None and target_public_key_hex not in self.account_dict:
-                    self.account_dict[target_public_key_hex] = Account(
-                        target_public_key_hex)
+                    self.account_dict[target_public_key_hex] = Account(target_public_key_hex)
 
                 if tx_type == TransactionType.STAKE:
                     self.account_dict[public_key_hex].stake += tx.transaction_target.tx_token
                 elif tx_type == TransactionType.TRANSFER:
                     self.account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
                     self.account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+                elif tx_type == TransactionType.TIP:
+                    self.account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
+                    self.account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+                elif tx_type == TransactionType.ICO:
+                    self.account_dict[target_public_key_hex].stake += tx.transaction_target.tx_token
 
                 if tx_fee is not None:
                     self.account_dict[public_key_hex].balance -= tx_fee
 
             curr_block = curr_block.previous_block
+        logger.info(f"Initialized {len(self.account_dict)} accounts")
 
     def accept_new_node(self, address: str):
         logger.info(f"Accepted node {address}")
@@ -196,7 +213,7 @@ class Node:
 
     async def accept_new_block(self, block: Block, origin: str):
         block_hash_hex = binascii.hexlify(block.block_hash)
-        logger.info(f"Received transaction {block_hash_hex} from {origin}")
+        logger.info(f"Received block {block_hash_hex} from {origin}")
 
         # 1. Validate block
         block.validate()
@@ -205,9 +222,14 @@ class Node:
 
         # 3. Add block to blockchain
         async with self.lock:
-            self.blockchain.add_new_block(block)
+            if self.blockchain is not None:
+                self.blockchain.add_new_block(block)
+            else:
+                self.blockchain = Blockchain(block)
 
-        # 3. TODO: remove transactions from transaction pool
+        # 4. TODO: Apply account stake and balance changes. Give tokens to the validator
+
+        # 4. Remove transactions from transaction pool
         async with self.lock:
             for transaction in block.transaction_list:
                 transaction_hash_hex = binascii.hexlify(
@@ -248,3 +270,20 @@ class Node:
         async with self.lock:
             self.known_node_address_set.difference_update(
                 disconnected_address_set)
+
+    ##### ICO related functions #####
+
+    def initialize_ico_accounts(self, ico_public_key_file):
+        with open(ico_public_key_file, 'r') as fp:
+            self.ico_accounts = set(json.load(fp))
+
+    def initialize_ico_block(self, block: Block):
+        block_hash_hex = binascii.hexlify(block.block_hash)
+        logger.info(f"Initializing ICO block {block_hash_hex}")
+
+        block.validate(self.account_dict)
+
+        if self.blockchain is not None:
+            self.blockchain.add_new_block(block)
+        else:
+            self.blockchain = Blockchain(block)
