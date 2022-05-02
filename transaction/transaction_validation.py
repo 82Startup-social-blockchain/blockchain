@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import time
+from tkinter import N
 from typing import TYPE_CHECKING, Optional
 
 from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS, VALIDATION_REWARD
@@ -9,8 +10,8 @@ if TYPE_CHECKING:
     from transaction.transaction import Transaction
 
 from account.account import Account
-from transaction.transaction_exception import TransactionIcoError, TransactionRewardError, TransactionValidationError,\
-    TransactionStakeError, TransactionTransferError, TransactionTipError
+from transaction.transaction_exception import TransactionAccountError, TransactionIcoError, \
+    TransactionValidationError, TransactionStakeError, TransactionTransferError, TransactionTipError
 from transaction.transaction_type import TransactionType
 
 
@@ -20,15 +21,18 @@ class TransactionValidation:
         self.account = account
 
     def _validate_stake(self):
+        if self.account is None:
+            raise TransactionAccountError(self.transaction, message="Account nonexistent")
+
         if self.transaction.transaction_target.tx_token is None:
             raise TransactionStakeError(self.transaction, message="Stake token amount null")
 
         if self.transaction.transaction_target.tx_token > self.account.balance:
-            raise TransactionStakeError(self.transaction)
+            raise TransactionStakeError(self.transaction, message="Stake amount higher than balance")
 
     def _validate_transfer(self):
         if self.account is None:
-            raise TransactionValidationError(self.transaction, message="Account does not exist")
+            raise TransactionAccountError(self.transaction, message="Account nonexistent")
 
         tx_token = self.transaction.transaction_target.tx_token
         if tx_token is None:
@@ -36,21 +40,35 @@ class TransactionValidation:
         if tx_token < 0:
             raise TransactionTransferError(self.transaction, message="Transfer token amount negative")
 
-        tx_fee = self.transaction.transaction_source.tx_fee
-        if tx_fee is not None and tx_token + tx_fee > self.account.balance:
-            raise TransactionTransferError(self.transaction)
+        if self.transaction.transaction_source.tx_fee is not None:
+            tx_fee = self.transaction.transaction_source.tx_fee
+        else:
+            tx_fee = 0
+        if tx_token + tx_fee > self.account.balance:
+            raise TransactionTransferError(self.transaction, message="Transfer token higher than balance")
+
+        if self.transaction.transaction_target.target_public_key_hex is None:
+            raise TransactionTransferError(self.transaction, message="Transfer target null")
 
     def _validate_tip(self):
         if self.account is None:
-            raise TransactionValidationError(self.transaction, message="Account does not exist")
+            raise TransactionAccountError(self.transaction, message="Account nonexistent")
 
         tx_token = self.transaction.transaction_target.tx_token
         if tx_token is None:
-            raise TransactionTipError(self.transaction, message="Transfer token amount null")
+            raise TransactionTipError(self.transaction, message="Tip token amount null")
+        if tx_token < 0:
+            raise TransactionTipError(self.transaction, message="Tip token amount negative")
 
-        tx_fee = self.transaction.transaction_source.tx_fee
-        if tx_fee is not None and tx_token + tx_fee > self.account.balance:
-            raise TransactionTipError(self.transaction)
+        if self.transaction.transaction_source.tx_fee is not None:
+            tx_fee = self.transaction.transaction_source.tx_fee
+        else:
+            tx_fee = 0
+        if tx_token + tx_fee > self.account.balance:
+            raise TransactionTipError(self.transaction, message="Tip amount higher than balance")
+
+        if self.transaction.transaction_target.target_public_key_hex is None:
+            raise TransactionTipError(self.transaction, message="Tip target null")
 
     def _validate_ico(self):
         with open(ICO_PUBLIC_KEY_FILE, 'r') as fp:
@@ -58,7 +76,7 @@ class TransactionValidation:
 
         # validate if transaction account is in ICO list
         if self.transaction.transaction_source.source_public_key_hex not in ico_accounts:
-            raise TransactionIcoError(self.transaction)
+            raise TransactionIcoError(self.transaction, message="Invalid ICO account")
 
         # validate if transaction account is in ICO list
         if self.transaction.transaction_target.tx_token != ICO_TOKENS:
@@ -78,7 +96,7 @@ class TransactionValidation:
         if tx_type == TransactionType.STAKE:
             self._validate_stake()
         elif tx_type == TransactionType.TRANSFER:
-            self._validate_stake()
+            self._validate_transfer()
         elif tx_type == TransactionType.TIP:
             self._validate_tip()
         elif tx_type == TransactionType.ICO:

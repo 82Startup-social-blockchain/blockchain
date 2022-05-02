@@ -34,8 +34,7 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
     ) if tx_dict["content_type"] is not None else None
 
     if tx_dict["content_hash_hex"] is not None:
-        content_hash = binascii.unhexlify(
-            tx_dict["content_hash_hex"].encode('utf-8'))
+        content_hash = binascii.unhexlify(tx_dict["content_hash_hex"].encode('utf-8'))
     else:
         content_hash = None
 
@@ -49,14 +48,12 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
 
     # create TransactionTarget object
     if tx_dict["target_transaction_hash_hex"] is not None:
-        target_transaction_hash_hex = tx_dict["target_transaction_hash_hex"].encode(
-            'utf-8')
+        target_transaction_hash_hex = tx_dict["target_transaction_hash_hex"].encode('utf-8')
     else:
         target_transaction_hash_hex = None
 
     if tx_dict["target_public_key_hex"] is not None:
-        target_public_key_hex = tx_dict["target_public_key_hex"].encode(
-            'utf-8')
+        target_public_key_hex = tx_dict["target_public_key_hex"].encode('utf-8')
     else:
         target_public_key_hex = None
 

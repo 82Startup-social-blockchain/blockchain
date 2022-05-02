@@ -9,7 +9,7 @@ from transaction.transaction_type import TransactionType, TransactionContentType
 from transaction.transaction_utils import generate_transaction
 
 
-class TransactionValidationTestCase(unittest.TestCase):
+class TransactionVerificationTestCase(unittest.TestCase):
     def setUp(self):
         self.account1 = FullAccount()
 
@@ -22,7 +22,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         )
         transaction.sign_transaction(self.account1.private_key)
 
-        transaction.validate()
+        transaction.validate(None)
 
     def test_transaction_manipulation(self):
         transaction = generate_transaction(
@@ -35,7 +35,7 @@ class TransactionValidationTestCase(unittest.TestCase):
 
         # manipulate transaction data - transaction target data
         transaction.transaction_target.tx_token = 1
-        self.assertRaises(InvalidSignature, transaction.validate)
+        self.assertRaises(InvalidSignature, lambda: transaction.validate(None))
         transaction.transaction_target.tx_token = None
 
         # manipulate transaction data - transaction source data
@@ -48,7 +48,7 @@ class TransactionValidationTestCase(unittest.TestCase):
             )
         )
         transaction.transaction_source.source_public_key_hex = new_public_key_hex
-        self.assertRaises(InvalidSignature, transaction.validate)
+        self.assertRaises(InvalidSignature, lambda: transaction.validate(None))
 
     # TODO: test every type of transaction
 

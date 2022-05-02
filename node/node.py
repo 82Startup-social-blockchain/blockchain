@@ -90,20 +90,20 @@ class Node:
                     self.blockchain.from_dict_list(r.json())
                     # validate blockchain
                     try:
-                        self.blockchain.head.validate(self.account_dict)
+                        self.blockchain.validate()
                         origin_address = address
                     except Exception as e:
-                        logger.error(f"Error fetching longest chain - {e}")
+                        logger.error(f"Error fetching longest chain: {e}")
                         self.blockchain = None
                 else:
                     # TODO: update after head instead of re-initializing
                     if len(self.blockchain.head) < len(r.json()):
                         self.blockchain.from_dict_list(r.json())
                         try:
-                            self.blockchain.head.validate(self.account_dict)
+                            self.blockchain.validate()
                             origin_address = address
                         except Exception as e:
-                            logger.error(f"Error fetching longest chain - {e}")
+                            logger.error(f"Error fetching longest chain: {e}")
                             self.blockchain = None
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)

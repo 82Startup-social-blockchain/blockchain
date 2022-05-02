@@ -110,7 +110,7 @@ class Block:
             ec.ECDSA(hashes.SHA256())
         )
 
-    def validate(self, account_dict: Dict[str, Account]):
+    def validate(self, account_dict: Dict[bytes, Account]):
         # 1. verify the block signature - if invalid, throw InvalidSignature exception
         self._verify_block()
 
@@ -130,6 +130,7 @@ class Block:
             public_key_hex = tx.transaction_source.source_public_key_hex
             target_public_key_hex = tx.transaction_target.target_public_key_hex
             tx_type = tx.transaction_source.transaction_type
+            tx_token = tx.transaction_target.tx_token
             tx_fee = tx.transaction_source.tx_fee
 
             if public_key_hex not in account_dict:
@@ -138,19 +139,23 @@ class Block:
                 account_dict[target_public_key_hex] = Account(target_public_key_hex)
 
             if tx_type == TransactionType.STAKE:
-                account_dict[public_key_hex].stake += tx.transaction_target.tx_token
+                account_dict[public_key_hex].stake += tx_token
+                account_dict[public_key_hex].balance -= tx_token
             elif tx_type == TransactionType.TRANSFER:
-                account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
-                account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+                account_dict[target_public_key_hex].balance += tx_token
+                account_dict[public_key_hex].balance -= tx_token
             elif tx_type == TransactionType.TIP:
-                account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
-                account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+                account_dict[target_public_key_hex].balance += tx_token
+                account_dict[public_key_hex].balance -= tx_token
             elif tx_type == TransactionType.ICO:
-                account_dict[public_key_hex].stake += tx.transaction_target.tx_token
+                account_dict[public_key_hex].stake += tx_token
 
             if tx_fee is not None:
                 account_dict[public_key_hex].balance -= tx_fee
+                # TODO: add fee to balance
 
+        if self.validator_public_key_hex not in account_dict:
+            account_dict[self.validator_public_key_hex] = Account(self.validator_public_key_hex)
         account_dict[self.validator_public_key_hex].balance += constants.VALIDATION_REWARD
 
 

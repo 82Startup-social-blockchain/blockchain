@@ -56,14 +56,14 @@ class BlockValidationTestCase(unittest.TestCase):
         self.block2.sign_block(self.account2.private_key)
 
     def test_valid_signature(self):
-        self.block1.validate()
-        self.block2.validate()
+        self.block1.validate({})
+        self.block2.validate({})
 
     def test_transaction_manipulation(self):
         self.transaction3.transaction_source.transaction_type = TransactionType.UNFOLLOW
 
-        self.block1.validate()
-        self.assertRaises(InvalidSignature, self.block2.validate)
+        self.block1.validate({})
+        self.assertRaises(InvalidSignature, lambda: self.block2.validate({}))
 
         self.transaction3.transaction_source.transaction_type = TransactionType.FOLLOW
 
@@ -71,16 +71,16 @@ class BlockValidationTestCase(unittest.TestCase):
         # try unsigning
         self.block1.signature = None
 
-        self.assertRaises(InvalidSignature, self.block1.validate)
-        self.block2.validate
+        self.assertRaises(InvalidSignature, lambda: self.block1.validate({}))
+        self.block2.validate({})
 
         self.block1.sign_block(self.account1.private_key)
 
         # try setting block2 previous hash to None
         self.block2.previous_block = None
 
-        self.block1.validate()
-        self.assertRaises(InvalidSignature, self.block2.validate)
+        self.block1.validate({})
+        self.assertRaises(InvalidSignature, lambda: self.block2.validate({}))
 
         self.block2.previous_block = self.block1
 

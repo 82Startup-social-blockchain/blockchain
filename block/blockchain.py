@@ -47,7 +47,7 @@ class Blockchain:
         previous_block = None
         for block_dict in reversed(block_dict_list):
             block = create_block_from_dict(block_dict, previous_block=previous_block)
-            block.validate()
+            block.validate(account_dict)
             block.update_account_dict(account_dict)
             previous_block = block
 

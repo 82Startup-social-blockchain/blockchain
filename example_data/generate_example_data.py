@@ -47,7 +47,7 @@ transaction3 = generate_transaction(
 )
 transaction3.sign_transaction(account2.private_key)
 
-# Block1 signed by account1
+# Block1 signed by account1 => account1 gets tokens
 block1 = Block(
     block0,
     [transaction1, transaction2, transaction3],
@@ -84,26 +84,26 @@ transaction6 = generate_transaction(
 )
 transaction6.sign_transaction(account1.private_key)
 
-# Block2 signed by account1
+# Block2 signed by account2 => account2 gets tokens
 block2 = Block(
     block1,
     [transaction4, transaction5, transaction6],
-    get_public_key_hex(account1.private_key.public_key()),
+    get_public_key_hex(account2.private_key.public_key()),
     time.time()
 )
-block2.sign_block(account1.private_key)
+block2.sign_block(account2.private_key)
 
 #### Block3 ####
 
-# account3 tips 0.4 token to account2
+# account1 tips 4 token to account3
 transaction7 = generate_transaction(
-    account3.private_key.public_key(),
+    account1.private_key.public_key(),
     TransactionType.TIP,
-    target_public_key=account2.private_key.public_key(),
-    tx_token=0.4,
-    tx_fee=0.01
+    target_public_key=account3.private_key.public_key(),
+    tx_token=4,
+    tx_fee=0.3
 )
-transaction7.sign_transaction(account3.private_key)
+transaction7.sign_transaction(account1.private_key)
 
 # account1 replies to comment1
 transaction8 = generate_transaction(
