@@ -109,3 +109,7 @@ In order to initialize a node with the example data, you need to set an environm
 ```
 (venv) $ python -m unittest discover test/
 ```
+
+### Points of improvement
+
+- Multiple transactions by same account in one block - make have problem in validation?

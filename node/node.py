@@ -109,46 +109,13 @@ class Node:
                 disconnected_address_set.add(address)
 
         self.known_node_address_set.difference_update(disconnected_address_set)
-        self._initialize_accounts()
+        if self.blockchain is not None:
+            self.blockchain.initialize_accounts()
+
         if origin_address is None:
             logger.info(f"Did not receive blockchain")
         else:
             logger.info(f"Received longest blockchain from address {origin_address}")
-
-    def _initialize_accounts(self):
-        if self.blockchain is None:
-            return
-        curr_block = self.blockchain.head
-        while curr_block is not None:
-            for tx in curr_block.transaction_list:
-                public_key_hex = tx.transaction_source.source_public_key_hex
-                target_public_key_hex = tx.transaction_target.target_public_key_hex
-                tx_type = tx.transaction_source.transaction_type
-                tx_fee = tx.transaction_source.tx_fee
-
-                if public_key_hex not in self.account_dict:
-                    self.account_dict[public_key_hex] = Account(public_key_hex)
-                if target_public_key_hex is not None and target_public_key_hex not in self.account_dict:
-                    self.account_dict[target_public_key_hex] = Account(target_public_key_hex)
-
-                if tx_type == TransactionType.STAKE:
-                    self.account_dict[public_key_hex].stake += tx.transaction_target.tx_token
-                elif tx_type == TransactionType.TRANSFER:
-                    self.account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
-                    self.account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
-                elif tx_type == TransactionType.TIP:
-                    self.account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
-                    self.account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
-                elif tx_type == TransactionType.ICO:
-                    self.account_dict[public_key_hex].stake += tx.transaction_target.tx_token
-
-                if tx_fee is not None:
-                    self.account_dict[public_key_hex].balance -= tx_fee
-
-            self.account_dict[curr_block.validator_public_key_hex].balance += constants.VALIDATION_REWARD
-
-            curr_block = curr_block.previous_block
-        logger.info(f"Initialized {len(self.account_dict)} accounts")
 
     def accept_new_node(self, address: str):
         logger.info(f"Accepted node {address}")

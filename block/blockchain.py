@@ -1,7 +1,13 @@
-from typing import List, Optional
+import logging
+from typing import Dict, List, Optional
 
+from account.account import Account
 from block.block import Block, create_block_from_dict
+from transaction.transaction_type import TransactionType
 from utils import constants
+
+
+logger = logging.getLogger(__name__)
 
 
 # Blockchain is stored in RAM (at least for now)
@@ -34,6 +40,33 @@ class Blockchain:
         # assume that input block is validated and previous block is already set to head
         self.head = block
 
-    # TODO: add functino to append blocks to head instead of re-initializing
+    def validate(self):
+        # validate the whole blockchain from head to the initial block
+        account_dict = {}
+        block_dict_list = self.to_dict_list()
+        previous_block = None
+        for block_dict in reversed(block_dict_list):
+            block = create_block_from_dict(block_dict, previous_block=previous_block)
+            block.validate()
+            block.update_account_dict(account_dict)
+            previous_block = block
 
-    # TODO: add utility function for blockchain e.g. finding specific transaction in the blocks of the chain
+    def initialize_accounts(self) -> Dict[bytes, Account]:
+        # initialize Account dict - assume blockchain is valid
+        if self.head is None:
+            return {}
+
+        account_dict = dict()
+        block_dict_list = self.to_dict_list()
+        previous_block = None
+        for block_dict in reversed(block_dict_list):
+            block = create_block_from_dict(block_dict, previous_block=previous_block)
+            block.update_account_dict(account_dict)
+            previous_block = block
+
+        logger.info(f"Initialized {len(account_dict)} accounts")
+        return account_dict
+
+        # TODO: add functino to append blocks to head instead of re-initializing
+
+        # TODO: add utility function for blockchain e.g. finding specific transaction in the blocks of the chain

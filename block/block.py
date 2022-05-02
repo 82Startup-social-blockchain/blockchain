@@ -9,7 +9,9 @@ from cryptography.exceptions import InvalidSignature
 
 from account.account import Account
 from transaction.transaction import Transaction
+from transaction.transaction_type import TransactionType
 from transaction.transaction_utils import create_transaction_from_dict
+from utils import constants
 
 
 class Block:
@@ -121,8 +123,35 @@ class Block:
 
         # TODO: 4. validate the validator
 
-    def update_account(account: Account):
-        pass
+    def update_account_dict(self, account_dict: Dict[bytes, Account]):
+        # assume block is already validated
+        # update account_dict in place
+        for tx in self.transaction_list:
+            public_key_hex = tx.transaction_source.source_public_key_hex
+            target_public_key_hex = tx.transaction_target.target_public_key_hex
+            tx_type = tx.transaction_source.transaction_type
+            tx_fee = tx.transaction_source.tx_fee
+
+            if public_key_hex not in account_dict:
+                account_dict[public_key_hex] = Account(public_key_hex)
+            if target_public_key_hex is not None and target_public_key_hex not in account_dict:
+                account_dict[target_public_key_hex] = Account(target_public_key_hex)
+
+            if tx_type == TransactionType.STAKE:
+                account_dict[public_key_hex].stake += tx.transaction_target.tx_token
+            elif tx_type == TransactionType.TRANSFER:
+                account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
+                account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+            elif tx_type == TransactionType.TIP:
+                account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
+                account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
+            elif tx_type == TransactionType.ICO:
+                account_dict[public_key_hex].stake += tx.transaction_target.tx_token
+
+            if tx_fee is not None:
+                account_dict[public_key_hex].balance -= tx_fee
+
+        account_dict[self.validator_public_key_hex].balance += constants.VALIDATION_REWARD
 
 
 def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = None):

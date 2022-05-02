@@ -20,6 +20,9 @@ class TransactionValidation:
         self.account = account
 
     def _validate_stake(self):
+        if self.transaction.transaction_target.tx_token is None:
+            raise TransactionStakeError(self.transaction, message="Stake token amount null")
+
         if self.transaction.transaction_target.tx_token > self.account.balance:
             raise TransactionStakeError(self.transaction)
 
@@ -30,6 +33,8 @@ class TransactionValidation:
         tx_token = self.transaction.transaction_target.tx_token
         if tx_token is None:
             raise TransactionTransferError(self.transaction, message="Transfer token amount null")
+        if tx_token < 0:
+            raise TransactionTransferError(self.transaction, message="Transfer token amount negative")
 
         tx_fee = self.transaction.transaction_source.tx_fee
         if tx_fee is not None and tx_token + tx_fee > self.account.balance:
