@@ -77,6 +77,7 @@ class Node:
 
     def _get_longest_blockchain(self):
         disconnected_address_set = set([])
+        origin_address = None
         for address in self.known_node_address_set:
             if address == self.address:
                 continue
@@ -89,22 +90,30 @@ class Node:
                     self.blockchain.from_dict_list(r.json())
                     # validate blockchain
                     try:
-                        self.blockchain.head.validate()
-                    except:
+                        self.blockchain.head.validate(self.account_dict)
+                        origin_address = address
+                    except Exception as e:
+                        logger.error(f"Error fetching longest chain - {e}")
                         self.blockchain = None
                 else:
                     # TODO: update after head instead of re-initializing
                     if len(self.blockchain.head) < len(r.json()):
                         self.blockchain.from_dict_list(r.json())
                         try:
-                            self.blockchain.head.validate()
-                        except:
+                            self.blockchain.head.validate(self.account_dict)
+                            origin_address = address
+                        except Exception as e:
+                            logger.error(f"Error fetching longest chain - {e}")
                             self.blockchain = None
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
 
         self.known_node_address_set.difference_update(disconnected_address_set)
         self._initialize_accounts()
+        if origin_address is None:
+            logger.info(f"Did not receive blockchain")
+        else:
+            logger.info(f"Received longest blockchain from address {origin_address}")
 
     def _initialize_accounts(self):
         if self.blockchain is None:
@@ -131,10 +140,12 @@ class Node:
                     self.account_dict[target_public_key_hex].balance += tx.transaction_target.tx_token
                     self.account_dict[public_key_hex].balance -= tx.transaction_target.tx_token
                 elif tx_type == TransactionType.ICO:
-                    self.account_dict[target_public_key_hex].stake += tx.transaction_target.tx_token
+                    self.account_dict[public_key_hex].stake += tx.transaction_target.tx_token
 
                 if tx_fee is not None:
                     self.account_dict[public_key_hex].balance -= tx_fee
+
+            self.account_dict[curr_block.validator_public_key_hex].balance += constants.VALIDATION_REWARD
 
             curr_block = curr_block.previous_block
         logger.info(f"Initialized {len(self.account_dict)} accounts")
@@ -165,7 +176,7 @@ class Node:
                 return None
 
         # 2. Validate transaction
-        transaction.validate()
+        transaction.validate(self.account_dict[transaction.transaction_source.source_public_key_hex])
 
         # 3. Add to transaction pool
         async with self.lock:
@@ -177,8 +188,7 @@ class Node:
         # 5. TODO: Add block to blockchain if the condition is met
 
     async def _broadcast_transaction(self, transaction: Transaction, origin: str):
-        transaction_hash_hex = binascii.hexlify(
-            transaction.transaction_hash)
+        transaction_hash_hex = binascii.hexlify(transaction.transaction_hash)
 
         # add transaction to broadcasted set
         async with self.lock:
@@ -216,7 +226,7 @@ class Node:
         logger.info(f"Received block {block_hash_hex} from {origin}")
 
         # 1. Validate block
-        block.validate()
+        block.validate(self.account_dict)
 
         # 2. TODO: take action is the block is invalid (slashing)
 

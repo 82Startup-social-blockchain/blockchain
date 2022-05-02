@@ -2,10 +2,10 @@ import binascii
 import json
 import os
 import logging
-from typing import List, Optional, Dict
-import asyncio
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi_utils.tasks import repeat_every
 
 # from models import TransactionRequest
 from block.block import Block, create_block_from_dict
@@ -26,6 +26,9 @@ assert "ADDRESS" in os.environ
 
 node = Node(os.environ["ADDRESS"])
 
+node.join_network()
+
+# initialize blockchain with given data - assume INIT_BLOCKCHAIN_FILE_NAME contains ICO data
 if "INIT_BLOCKCHAIN_FILE_NAME" in os.environ:
     with open(os.path.join(constants.EXAMPLE_DATA_DIR, os.environ["INIT_BLOCKCHAIN_FILE_NAME"]), 'r') as fp:
         blockchain_dict_list = json.load(fp)
@@ -33,7 +36,6 @@ if "INIT_BLOCKCHAIN_FILE_NAME" in os.environ:
     blockchain.from_dict_list(blockchain_dict_list)
     node.blockchain = blockchain
 
-node.join_network()
 
 # if node does not have blockchain initialize genesis block that has ICO details
 if node.blockchain is None or node.blockchain.head is None:
@@ -42,7 +44,16 @@ if node.blockchain is None or node.blockchain.head is None:
     node.initialize_ico_block(block)
 
 
+# Task to check for creating locks
+
+@app.on_event("startup")
+@repeat_every(seconds=5)
+def create_block() -> None:
+    print("Creating block")
+    # TODO: implement RANDAO
+
 ### Endpoints that other nodes call ###
+
 
 @ app.post(constants.BLOCK_VALIDATION_PATH, response_model=None)
 async def validate_block(blockRequest: BlockValidationRequest):

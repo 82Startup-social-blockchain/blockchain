@@ -1,7 +1,7 @@
 
 # setup 10 accounts for ICO
 
-from datetime import datetime
+import time
 import json
 
 from account.account_full import FullAccount
@@ -37,7 +37,7 @@ def create_initial_block() -> Block:
         None,
         transactions,
         get_public_key_hex(ICO_ACCOUNTS[0].private_key.public_key()),
-        datetime.utcnow()
+        time.time()
     )
     block.sign_block(ICO_ACCOUNTS[0].private_key)
 

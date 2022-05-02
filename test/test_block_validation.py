@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 import unittest
 
 from cryptography.exceptions import InvalidSignature
@@ -43,7 +43,7 @@ class BlockValidationTestCase(unittest.TestCase):
             None,
             [self.transaction1, self.transaction2],
             get_public_key_hex(self.account1.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block1.sign_block(self.account1.private_key)
 
@@ -51,7 +51,7 @@ class BlockValidationTestCase(unittest.TestCase):
             self.block1,
             [self.transaction3],
             get_public_key_hex(self.account2.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block2.sign_block(self.account2.private_key)
 

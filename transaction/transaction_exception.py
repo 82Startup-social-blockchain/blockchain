@@ -50,3 +50,12 @@ class TransactionIcoError(TransactionValidationError):
         message="Invalid account for ICO"
     ):
         super().__init__(transaction, message=message)
+
+
+class TransactionRewardError(TransactionValidationError):
+    def __init__(
+        self,
+        transaction: Transaction,
+        message="Invalid validator reward"
+    ):
+        super().__init__(transaction, message=message)

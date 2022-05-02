@@ -10,7 +10,7 @@ class BlockValidationRequest(BaseModel):
     previous_block_hash_hex: Optional[str]  # bytes decoded to str
     transaction_hash_hex_list: List[str]    # list of bytes decoded to str
     validator_public_key_hex: str           # bytes decoded to str
-    timestamp: str                          # datetime in isoformat
+    timestamp: float                        # unix timestamp float
     signature_hex: str                      # bytes decoded to str
     block_hash_hex: str                     # bytes decoded to str
     transaction_dict_list: List[dict]
@@ -30,7 +30,7 @@ class TransactionValidationRequest(BaseModel):
     tx_object: Optional[Any]                        # any type (not decided)
     signature_hex: Optional[str]                    # bytes decoded to str
     transaction_hash_hex: str                       # bytes decoded to str
-    timestamp: str                                  # timestamp in isoformat
+    timestamp: float                                # unix timestamp float
 
     origin: str                                     # address of origin
 

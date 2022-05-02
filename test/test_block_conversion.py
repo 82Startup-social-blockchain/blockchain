@@ -1,5 +1,5 @@
+import time
 import unittest
-from datetime import datetime
 
 from block.block import Block, create_block_from_dict
 from block.blockchain import Blockchain
@@ -47,7 +47,7 @@ class BlockConversionTestCase(unittest.TestCase):
             None,
             [self.transaction1, self.transaction2],
             get_public_key_hex(self.account1.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block1.sign_block(self.account1.private_key)
 
@@ -55,7 +55,7 @@ class BlockConversionTestCase(unittest.TestCase):
             self.block1,
             [self.transaction3],
             get_public_key_hex(self.account2.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block2.sign_block(self.account2.private_key)
 

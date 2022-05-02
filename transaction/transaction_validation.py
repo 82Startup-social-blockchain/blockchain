@@ -1,18 +1,17 @@
 from __future__ import annotations
 import json
+import time
 from typing import TYPE_CHECKING, Optional
 
-from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS
+from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS, VALIDATION_REWARD
 
 if TYPE_CHECKING:
     from transaction.transaction import Transaction
 
-from datetime import datetime
 from account.account import Account
-from transaction.transaction_exception import TransactionIcoError, TransactionValidationError,\
+from transaction.transaction_exception import TransactionIcoError, TransactionRewardError, TransactionValidationError,\
     TransactionStakeError, TransactionTransferError, TransactionTipError
 from transaction.transaction_type import TransactionType
-from utils.crypto import get_public_key_hex
 
 
 class TransactionValidation:
@@ -62,7 +61,7 @@ class TransactionValidation:
 
     def run(self):
         # general transaction validation
-        if self.transaction.timestamp > datetime.utcnow():
+        if self.transaction.timestamp > time.time():
             raise TransactionValidationError(self.transaction, message="Timestamp in future")
 
         tx_fee = self.transaction.transaction_source.tx_fee

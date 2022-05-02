@@ -18,7 +18,7 @@ class Block:
         previous_block: Optional['Block'],
         transaction_list: List[Transaction],
         validator_public_key_hex: bytes,
-        timestamp: datetime
+        timestamp: float
     ):
         self.previous_block = previous_block
         self.transaction_list = transaction_list
@@ -61,7 +61,7 @@ class Block:
             "previous_block_hash_hex": previous_block_hash_hex,
             "transaction_hash_hex_list": transaction_hash_hex_list,
             "validator_public_key_hex": self.validator_public_key_hex.decode('utf-8'),
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": self.timestamp,
         }
 
     def to_dict(self) -> dict:
@@ -109,9 +109,7 @@ class Block:
         )
 
     def validate(self, account_dict: Dict[str, Account]):
-        # If the block is invalid, throw InvalidSignature exception
-
-        # 1. verify the block signature
+        # 1. verify the block signature - if invalid, throw InvalidSignature exception
         self._verify_block()
 
         # 2. validate all the transactions
@@ -121,7 +119,7 @@ class Block:
 
         # TODO: 3. validate that type is not ICO if it's not the first block
 
-        # TODO: 4. vadliate that the validator got the right amount of reward
+        # TODO: 4. validate the validator
 
     def update_account(account: Account):
         pass
@@ -133,13 +131,15 @@ def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = N
     - previous_block_hash_hex   : Optional[bytes]
     - transaction_hash_hex_list : List[bytes]
     - validator_public_key_hex  : byte
-    - timestamp                 : str
+    - timestamp                 : float
     - signature_hex             : Optiona[byte]
     - block_hash_hex            : byte
     - transaction_dict_list     : List[dict]
     """
-    transaction_list = list(map(lambda tx_dict: create_transaction_from_dict(tx_dict),
-                                block_dict["transaction_dict_list"]))
+    transaction_list = list(
+        map(lambda tx_dict: create_transaction_from_dict(tx_dict),
+            block_dict["transaction_dict_list"])
+    )
 
     if block_dict["signature_hex"] is not None:
         signature_hex = block_dict["signature_hex"].encode('utf-8')
@@ -151,7 +151,7 @@ def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = N
         previous_block,
         transaction_list,
         block_dict["validator_public_key_hex"].encode('utf-8'),
-        datetime.fromisoformat(block_dict["timestamp"])
+        block_dict["timestamp"]
     )
     block.signature = signature
 

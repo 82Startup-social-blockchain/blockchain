@@ -1,5 +1,5 @@
 import binascii
-import datetime
+import time
 from typing import Optional, Any
 import json
 
@@ -98,13 +98,13 @@ class Transaction:
         self,
         transaction_source: TransactionSource,
         transaction_target: TransactionTarget,
-        timestamp: Optional[datetime.datetime] = datetime.datetime.utcnow()
+        timestamp: Optional[float] = time.time()
     ):
         self.transaction_source = transaction_source
         self.transaction_target = transaction_target
 
         if timestamp is None:
-            self.timestamp = datetime.datetime.utcnow()
+            self.timestamp = time.time()
         else:
             self.timestamp = timestamp
 
@@ -125,7 +125,7 @@ class Transaction:
         return {
             **self.transaction_source.to_dict(),
             **self.transaction_target.to_dict(),
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp
         }
 
     def to_dict(self) -> dict:

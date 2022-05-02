@@ -1,11 +1,9 @@
-import binascii
-from datetime import datetime
+import time
 import unittest
-from block.block import Block
-from block.blockchain import Blockchain
-
 
 from account.account_full import FullAccount
+from block.block import Block
+from block.blockchain import Blockchain
 from test.test_node import TestNode
 from transaction.transaction_type import TransactionContentType, TransactionType
 from transaction.transaction_utils import generate_transaction
@@ -61,7 +59,7 @@ class AccountInitialization(unittest.TestCase):
             None,
             [self.transaction1, self.transaction2, self.transaction3],
             get_public_key_hex(self.account1.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block1.sign_block(self.account1.private_key)
 
@@ -96,7 +94,7 @@ class AccountInitialization(unittest.TestCase):
             self.block1,
             [self.transaction4, self.transaction5, self.transaction6],
             get_public_key_hex(self.account2.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block2.sign_block(self.account2.private_key)
 
@@ -133,7 +131,7 @@ class AccountInitialization(unittest.TestCase):
             self.block2,
             [self.transaction7, self.transaction8, self.transaction9],
             get_public_key_hex(self.account1.private_key.public_key()),
-            datetime.utcnow()
+            time.time()
         )
         self.block3.sign_block(self.account1.private_key)
 

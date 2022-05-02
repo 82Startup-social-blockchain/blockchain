@@ -38,7 +38,7 @@ class TransactionConversionTestCase(unittest.TestCase):
             "tx_object": None,
             "signature_hex": binascii.hexlify(self.transaction.signature).decode('utf-8'),
             "transaction_hash_hex": binascii.hexlify(self.transaction.transaction_hash).decode('utf-8'),
-            "timestamp": self.transaction.timestamp.isoformat()
+            "timestamp": self.transaction.timestamp
         }
 
     def test_transaction_to_dict(self):

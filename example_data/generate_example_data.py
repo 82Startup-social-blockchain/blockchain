@@ -1,11 +1,12 @@
 # generate example data for testing purposes
-from datetime import datetime
+import time
 import json
 import os
 
 from block.block import Block
 from block.blockchain import Blockchain
 from account.account_full import FullAccount
+from genesis.initial_block import create_initial_block
 from transaction.transaction_type import TransactionContentType, TransactionType
 from transaction.transaction_utils import generate_transaction
 from utils.constants import EXAMPLE_DATA_DIR
@@ -14,6 +15,10 @@ from utils.crypto import get_public_key_hex
 account1 = FullAccount()
 account2 = FullAccount()
 account3 = FullAccount()
+
+#### Block 0 - ICO ####
+
+block0 = create_initial_block()
 
 #### Block1 ####
 
@@ -44,10 +49,10 @@ transaction3.sign_transaction(account2.private_key)
 
 # Block1 signed by account1
 block1 = Block(
-    None,
+    block0,
     [transaction1, transaction2, transaction3],
     get_public_key_hex(account1.private_key.public_key()),
-    datetime.utcnow()
+    time.time()
 )
 block1.sign_block(account1.private_key)
 
@@ -84,7 +89,7 @@ block2 = Block(
     block1,
     [transaction4, transaction5, transaction6],
     get_public_key_hex(account1.private_key.public_key()),
-    datetime.utcnow()
+    time.time()
 )
 block2.sign_block(account1.private_key)
 
@@ -125,7 +130,7 @@ block3 = Block(
     block2,
     [transaction7, transaction8, transaction9],
     get_public_key_hex(account2.private_key.public_key()),
-    datetime.utcnow()
+    time.time()
 )
 block3.sign_block(account2.private_key)
 
@@ -170,7 +175,7 @@ block4 = Block(
     block3,
     [transaction10, transaction11, transaction12],
     get_public_key_hex(account1.private_key.public_key()),
-    datetime.utcnow()
+    time.time()
 )
 block4.sign_block(account1.private_key)
 

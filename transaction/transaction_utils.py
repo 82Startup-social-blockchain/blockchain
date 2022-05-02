@@ -26,7 +26,7 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
     - tx_object                   : Optional[bytes]
     - signature_hex               : Optional[bytes]
     - transaction_hash_hex        : byte
-    - timestamp                   : str
+    - timestamp                   : float
     """
     # create TransactionSource object
     content_type = TransactionContentType(
@@ -77,7 +77,7 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
     transaction = Transaction(
         transaction_source,
         transaction_target,
-        timestamp=datetime.fromisoformat(tx_dict["timestamp"])
+        timestamp=tx_dict["timestamp"]
     )
     transaction.signature = signature
     return transaction
