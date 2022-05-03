@@ -25,7 +25,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         self.public_key_hex4 = get_public_key_hex(self.account4.private_key.public_key())
 
         #### Block 0 - ICO ####
-        self.block0 = create_initial_block()
+        self.block0 = create_initial_block(save_accounts=False)
 
         # account1 signs empty block to get balance ####
         self.block1 = Block(

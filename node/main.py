@@ -11,7 +11,8 @@ from fastapi_utils.tasks import repeat_every
 from block.block import Block, create_block_from_dict
 from block.blockchain import Blockchain
 from genesis.initial_block import create_initial_block
-from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest
+from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest,\
+    ValidatorRand
 from node.node import Node
 from transaction.transaction_utils import create_transaction_from_dict
 from utils import constants
@@ -35,6 +36,7 @@ if "INIT_BLOCKCHAIN_FILE_NAME" in os.environ:
     blockchain = Blockchain()
     blockchain.from_dict_list(blockchain_dict_list)
     node.blockchain = blockchain
+    node.account_dict = blockchain.initialize_accounts()
 
 
 # if node does not have blockchain initialize genesis block that has ICO details
@@ -47,13 +49,24 @@ if node.blockchain is None or node.blockchain.head is None:
 # Task to check for creating locks
 
 @app.on_event("startup")
-@repeat_every(seconds=5)
+@repeat_every(seconds=10)
 def create_block() -> None:
     print("Creating block")
     # TODO: implement RANDAO
 
-### Endpoints that other nodes call ###
+    # 1. generate number => broadcast
 
+    # 2.
+
+
+@app.on_event("startup")
+@repeat_every(seconds=5)
+def check_validator_rand():
+    # check if all validators submitted their rands
+    pass
+
+
+##### Endpoints that other nodes call #####
 
 @ app.post(constants.BLOCK_VALIDATION_PATH, response_model=None)
 async def validate_block(blockRequest: BlockValidationRequest):
@@ -109,27 +122,13 @@ async def get_known_nodes():
     return list(node.known_node_address_set)
 
 
-@app.get(constants.BLOCKCHAIN_REQUEST_PATH)
-async def get_blockchain():
-    # return the current state of blockchain that the node has
-    if node.blockchain is None:
-        return []
-
-    return node.blockchain.to_dict_list()
-
-
-@app.get(constants.ACCOUNTS_PATH)
-async def get_accounts():
+@app.post(constants.VALIDATOR_RAND_PATH, response_model=None)
+async def accept_validator_rand(data: ValidatorRand):
+    # accept the random number passed by a validator
     pass
 
 
-@app.get("/transaction-pool")
-async def get_transaction_pool():
-    return {tx_hash_hex.decode('utf-8'): tx.to_dict()
-            for tx_hash_hex, tx in node.transaction_pool.items()}
-
-
-### Endpoints that services call ###
+##### Endpoints that services call #####
 
 @app.post("/activity")
 async def create_activity():
@@ -148,3 +147,31 @@ async def get_activities_by_public_key(
 ):
     # get activities of a user with input public key - filter by multiple query paraemters
     pass
+
+
+##### Endpoints to show data - useful for development #####
+
+@app.get(constants.BLOCKCHAIN_REQUEST_PATH)
+async def get_blockchain():
+    # return the current state of blockchain that the node has
+    if node.blockchain is None:
+        return []
+
+    return node.blockchain.to_dict_list()
+
+
+@app.get(constants.ACCOUNTS_PATH)
+async def get_accounts():
+    # return account data that the node holds
+    return {
+        public_key_hex: account.to_dict()
+        for public_key_hex, account in node.account_dict.items()
+    }
+
+
+@app.get("/transaction-pool")
+async def get_transaction_pool():
+    return {
+        tx_hash_hex.decode('utf-8'): tx.to_dict()
+        for tx_hash_hex, tx in node.transaction_pool.items()
+    }

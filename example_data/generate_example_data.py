@@ -18,7 +18,7 @@ account3 = FullAccount()
 
 #### Block 0 - ICO ####
 
-block0 = create_initial_block()
+block0 = create_initial_block(save_accounts=False)
 
 #### Block1 ####
 

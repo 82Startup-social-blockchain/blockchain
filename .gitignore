@@ -136,3 +136,10 @@ venv/
 
 # Runtime generated config files
 genesis/ico_accounts.json
+
+# Example data
+example_data/block4.json
+example_data/blockchain_length2.json
+example_data/blockchain_length3.json
+example_data/transaction10.json
+example_data/transaction11.json

@@ -37,3 +37,8 @@ class TransactionValidationRequest(BaseModel):
 
 class NodeAddress(BaseModel):
     address: str
+
+
+class ValidatorRand(BaseModel):
+    validator_public_key_hex: str  # bytes decoded to str
+    rand: int                      # random number submitted by a validator

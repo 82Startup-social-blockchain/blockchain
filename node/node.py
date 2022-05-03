@@ -2,15 +2,16 @@ import asyncio
 import binascii
 import json
 import logging
-import httpx
+import secrets
+from typing import Optional
 
+from cryptography.hazmat.primitives.asymmetric import ec
+import httpx
 import requests
-from account.account import Account
 
 from block.block import Block
 from block.blockchain import Blockchain
 from transaction.transaction import Transaction
-from transaction.transaction_type import TransactionType
 from utils import constants
 
 
@@ -18,8 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 class Node:
-    def __init__(self, address: str):
+    def __init__(
+        self,
+        address: str,
+        private_key: Optional[Optional[ec.EllipticCurvePrivateKey]] = None
+    ):
         self.address = address
+        self.private_key = private_key  # private key of this node - used for signing block, etc.
         self.known_node_address_set = self._initialize_known_node_address_set()
         self.blockchain = None
 
@@ -28,9 +34,10 @@ class Node:
         self.block_broadcasted = dict()  # { block_hash_hex: set }
 
         self.account_dict = dict()  # { account_public_key_hex: Account }
-        self.ico_accounts = set([])  # set of ico account_public_key_hex
 
         self.lock = asyncio.Lock()
+
+    ##### Initialization functions #####
 
     def _initialize_known_node_address_set(self):
         # TODO: use something better than just json
@@ -110,16 +117,12 @@ class Node:
 
         self.known_node_address_set.difference_update(disconnected_address_set)
         if self.blockchain is not None:
-            self.blockchain.initialize_accounts()
+            self.account_dict = self.blockchain.initialize_accounts()
 
         if origin_address is None:
             logger.info(f"Did not receive blockchain")
         else:
             logger.info(f"Received longest blockchain from address {origin_address}")
-
-    def accept_new_node(self, address: str):
-        logger.info(f"Accepted node {address}")
-        self.known_node_address_set.add(address)
 
     def join_network(self):
         # 1. Ask seed nodes for their known nodes
@@ -130,6 +133,27 @@ class Node:
 
         # 3. get blockchain from known nodes
         self._get_longest_blockchain()
+
+    ##### ICO related functions #####
+
+    def initialize_ico_block(self, block: Block):
+        block_hash_hex = binascii.hexlify(block.block_hash)
+        logger.info(f"Initializing ICO block {block_hash_hex}")
+
+        block.validate(self.account_dict)
+
+        if self.blockchain is not None:
+            self.blockchain.add_new_block(block)
+            block.update_account_dict(self.account_dict)
+        else:
+            self.blockchain = Blockchain(block)
+            self.account_dict = self.blockchain.initialize_accounts()
+
+    ##### P2P data handling #####
+
+    def accept_new_node(self, address: str):
+        logger.info(f"Accepted node {address}")
+        self.known_node_address_set.add(address)
 
     async def accept_new_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(
@@ -153,6 +177,36 @@ class Node:
         await self._broadcast_transaction(transaction, origin)
 
         # 5. TODO: Add block to blockchain if the condition is met
+
+    async def accept_new_block(self, block: Block, origin: str):
+        block_hash_hex = binascii.hexlify(block.block_hash)
+        logger.info(f"Received block {block_hash_hex} from {origin}")
+
+        # 1. Validate block
+        block.validate(self.account_dict)
+
+        # 2. TODO: take action is the block is invalid (slashing)
+
+        # 3. Add block to blockchain
+        async with self.lock:
+            if self.blockchain is not None:
+                self.blockchain.add_new_block(block)
+            else:
+                self.blockchain = Blockchain(block)
+
+        # 4. Apply account stake and balance changes. Give tokens to the validator
+        block.update_account_dict(self.account_dict)
+
+        # 5. Remove transactions from transaction pool
+        async with self.lock:
+            for transaction in block.transaction_list:
+                transaction_hash_hex = binascii.hexlify(
+                    transaction.transaction_hash)
+                self.transaction_pool.pop(transaction_hash_hex, None)
+                self.transaction_broadcasted.pop(transaction_hash_hex, None)
+
+        # 6. Broadcast
+        await self._broadcast_block(block, origin)
 
     async def _broadcast_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(transaction.transaction_hash)
@@ -188,35 +242,6 @@ class Node:
             self.known_node_address_set.difference_update(
                 disconnected_address_set)
 
-    async def accept_new_block(self, block: Block, origin: str):
-        block_hash_hex = binascii.hexlify(block.block_hash)
-        logger.info(f"Received block {block_hash_hex} from {origin}")
-
-        # 1. Validate block
-        block.validate(self.account_dict)
-
-        # 2. TODO: take action is the block is invalid (slashing)
-
-        # 3. Add block to blockchain
-        async with self.lock:
-            if self.blockchain is not None:
-                self.blockchain.add_new_block(block)
-            else:
-                self.blockchain = Blockchain(block)
-
-        # 4. TODO: Apply account stake and balance changes. Give tokens to the validator
-
-        # 4. Remove transactions from transaction pool
-        async with self.lock:
-            for transaction in block.transaction_list:
-                transaction_hash_hex = binascii.hexlify(
-                    transaction.transaction_hash)
-                self.transaction_pool.pop(transaction_hash_hex, None)
-                self.transaction_broadcasted.pop(transaction_hash_hex, None)
-
-        # 4. Broadcast
-        await self._broadcast_block(block, origin)
-
     async def _broadcast_block(self, block: Block, origin: str):
         block_hash_hex = binascii.hexlify(block.block_hash)
 
@@ -248,19 +273,17 @@ class Node:
             self.known_node_address_set.difference_update(
                 disconnected_address_set)
 
-    ##### ICO related functions #####
+    ##### PoS Consesus functions #####
+    def _generate_validator_rand(self):
+        return int(secrets.token_hex(8))
 
-    def initialize_ico_accounts(self, ico_public_key_file):
-        with open(ico_public_key_file, 'r') as fp:
-            self.ico_accounts = set(json.load(fp))
+    def accept_validator_rand(self, public_key_hex: bytes, rand: int):
+        # TODO: determine disconnected validator
+        pass
 
-    def initialize_ico_block(self, block: Block):
-        block_hash_hex = binascii.hexlify(block.block_hash)
-        logger.info(f"Initializing ICO block {block_hash_hex}")
+    def broadcast_validator_rand(self):
+        pass
 
-        block.validate(self.account_dict)
-
-        if self.blockchain is not None:
-            self.blockchain.add_new_block(block)
-        else:
-            self.blockchain = Blockchain(block)
+    def create_block(self):
+        # 1. order transactions in transaction pool by the amount of stake
+        pass

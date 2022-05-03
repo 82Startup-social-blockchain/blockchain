@@ -20,6 +20,7 @@ class TransactionType(enum.IntEnum):
     TRANSFER = 16  # transfer some kind of identifier (e.g. web3 game item)
     STAKE = 17
     ICO = 18
+    SLASHING = 19  # TODO: add validation, account updates, and etc for slashing transaction
 
     # TODO: add more react types, report?, make it a token? (co-ownership)
 

@@ -9,8 +9,13 @@ NODE_REQUEST_PATH = "/node"
 BLOCKCHAIN_REQUEST_PATH = "/blockchain"
 TRANSACTION_VALIDATION_PATH = "/validation/transaction"
 BLOCK_VALIDATION_PATH = "/validation/block"
+VALIDATOR_RAND_PATH = "/validator/rand"
 
 ACCOUNTS_PATH = "/accounts"
 
 ICO_TOKENS = 1_000_000
-VALIDATION_REWARD = 100
+VALIDATION_REWARD = 100  # TODO: make it a function of staked tokens in a block
+VALIATOR_MINIMUM_STAKE = 10  # minimum staked token to become a validator # TODO: apply logi based on this number
+MAX_TX_PER_BLOCK = 20  # maximum number of transactions per block # TODO: can calculate precisely backwards form desired block size
+
+# Make the RANDAO function also consider the most recent timestamp of becoming forger

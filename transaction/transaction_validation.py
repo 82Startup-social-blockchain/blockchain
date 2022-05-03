@@ -75,10 +75,11 @@ class TransactionValidation:
             ico_accounts = list(map(lambda x: x.encode('utf-8'), json.load(fp)))
 
         # validate if transaction account is in ICO list
-        if self.transaction.transaction_source.source_public_key_hex not in ico_accounts:
-            raise TransactionIcoError(self.transaction, message="Invalid ICO account")
+        ico_account = self.transaction.transaction_source.source_public_key_hex
+        if ico_account not in ico_accounts:
+            raise TransactionIcoError(self.transaction, message=f"Invalid ICO account {ico_account}")
 
-        # validate if transaction account is in ICO list
+        # validate if ico amount is valid
         if self.transaction.transaction_target.tx_token != ICO_TOKENS:
             raise TransactionIcoError(self.transaction, message="ICO token amount invalid")
 
