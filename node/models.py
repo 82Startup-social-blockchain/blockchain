@@ -39,6 +39,9 @@ class NodeAddress(BaseModel):
     address: str
 
 
-class ValidatorRand(BaseModel):
+class ValidatorRandRequest(BaseModel):
     validator_public_key_hex: str  # bytes decoded to str
     rand: int                      # random number submitted by a validator
+    previous_block_hash_hex: str   # previous block hash hex decoded to str
+    timestamp: int                 # timestamp of when the rand num is generated
+    signature: str                 # signature signed by the validator

@@ -1,6 +1,5 @@
 import binascii
 import json
-from datetime import datetime
 from typing import Dict, Optional, List
 
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -75,8 +74,8 @@ class Block:
             signature_hex = binascii.hexlify(self.signature)
         else:
             signature_hex = None
-        block_dict["signature_hex"] = signature_hex.decode(
-            'utf-8') if signature_hex is not None else None
+        block_dict["signature_hex"] = signature_hex.decode('utf-8') \
+            if signature_hex is not None else None
 
         # add block hash
         block_dict["block_hash_hex"] = binascii.hexlify(
@@ -159,7 +158,7 @@ class Block:
         account_dict[self.validator_public_key_hex].balance += constants.VALIDATION_REWARD
 
 
-def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = None):
+def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = None) -> Block:
     """ Create a Block instance from input block dict
     block_dict has the following items
     - previous_block_hash_hex   : Optional[bytes]

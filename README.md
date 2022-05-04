@@ -88,7 +88,7 @@ $ source venv/bin/activate
 (venv) $ pip install -r requirements.txt
 ```
 
-5. Run the node locally. You must first set address of the node as an environment variable.
+5. Run the node locally. You must first set address of the node as an environment variable. You must also set account key file as an environment variable.
 
 If you want to use example data to start with, run
 
@@ -99,9 +99,10 @@ If you want to use example data to start with, run
 In order to initialize a node with the example data, you need to set an environment `INIT_BLOCKCHAIN_FILE_NAME` with the json file name.
 
 ```
+(venv) $ export INIT_BLOCKCHAIN_FILE_NAME=blockchain_length2.json # optional
+(venv) $ export ACCOUNT_KEY_FILE_NAME=account_0.json
 (venv) $ export ADDRESS=http://127.0.0.1:8000
-(venv) $ export INIT_BLOCKCHAIN_FILE_NAME=blockchain_length2.json
-(venv) $ uvicorn node.main:app --reload --port 8000
+(venv) $ uvicorn runner.main:app --reload --port 8000
 ```
 
 6. To run tests locally, run

@@ -136,6 +136,7 @@ venv/
 
 # Runtime generated config files
 genesis/ico_accounts.json
+genesis/account_*.json
 
 # Example data
 example_data/block4.json

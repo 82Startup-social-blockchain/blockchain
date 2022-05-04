@@ -158,8 +158,8 @@ class Transaction:
         # If the signature is not verified, throw InvalidSignature excxeption
         if self.signature is None:
             raise InvalidSignature
-        public_key_hex = binascii.unhexlify(self.transaction_source.source_public_key_hex)
-        public_key = serialization.load_der_public_key(public_key_hex)
+        public_key_serialized = binascii.unhexlify(self.transaction_source.source_public_key_hex)
+        public_key = serialization.load_der_public_key(public_key_serialized)
         public_key.verify(
             self.signature,
             json.dumps(self._to_presigned_dict()).encode('utf-8'),

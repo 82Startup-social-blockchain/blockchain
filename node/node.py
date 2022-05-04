@@ -1,8 +1,6 @@
 import asyncio
 import binascii
 import json
-import logging
-import secrets
 from typing import Optional
 
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -11,11 +9,9 @@ import requests
 
 from block.block import Block
 from block.blockchain import Blockchain
+from block.validator_rand import ValidatorRand
 from transaction.transaction import Transaction
 from utils import constants
-
-
-logger = logging.getLogger(__name__)
 
 
 class Node:
@@ -34,6 +30,8 @@ class Node:
         self.block_broadcasted = dict()  # { block_hash_hex: set }
 
         self.account_dict = dict()  # { account_public_key_hex: Account }
+        self.account_stake_dict = dict()
+        self.validator_rand_dict = dict()  # { validator_public_key_hex: random number }
 
         self.lock = asyncio.Lock()
 
@@ -76,7 +74,7 @@ class Node:
             headers = {"Content-Type": "application/json"}
             try:
                 requests.post(url=url, json=data, headers=headers)
-                logger.info(f"Advertised to node {address}")
+                print(f"[INFO] Advertised to node {address}")
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
 
@@ -100,7 +98,7 @@ class Node:
                         self.blockchain.validate()
                         origin_address = address
                     except Exception as e:
-                        logger.error(f"Error fetching longest chain: {e}")
+                        print(f"[ERROR] Error fetching longest chain: {e}")
                         self.blockchain = None
                 else:
                     # TODO: update after head instead of re-initializing
@@ -110,7 +108,7 @@ class Node:
                             self.blockchain.validate()
                             origin_address = address
                         except Exception as e:
-                            logger.error(f"Error fetching longest chain: {e}")
+                            print(f"[ERROR] Error fetching longest chain: {e}")
                             self.blockchain = None
             except requests.exceptions.ConnectionError:
                 disconnected_address_set.add(address)
@@ -120,9 +118,9 @@ class Node:
             self.account_dict = self.blockchain.initialize_accounts()
 
         if origin_address is None:
-            logger.info(f"Did not receive blockchain")
+            print(f"[WARN] Did not receive blockchain")
         else:
-            logger.info(f"Received longest blockchain from address {origin_address}")
+            print(f"[INFO] Received longest blockchain from address {origin_address}")
 
     def join_network(self):
         # 1. Ask seed nodes for their known nodes
@@ -138,13 +136,17 @@ class Node:
 
     def initialize_ico_block(self, block: Block):
         block_hash_hex = binascii.hexlify(block.block_hash)
-        logger.info(f"Initializing ICO block {block_hash_hex}")
+        print(f"[INFO] Initializing ICO block {block_hash_hex}")
 
         block.validate(self.account_dict)
 
         if self.blockchain is not None:
             self.blockchain.add_new_block(block)
             block.update_account_dict(self.account_dict)
+            self.account_stake_dict = {
+                account.public_key_hex: account.stake for account in self.account_dict
+                if account.stake > 0
+            }
         else:
             self.blockchain = Blockchain(block)
             self.account_dict = self.blockchain.initialize_accounts()
@@ -152,14 +154,13 @@ class Node:
     ##### P2P data handling #####
 
     def accept_new_node(self, address: str):
-        logger.info(f"Accepted node {address}")
+        print(f"[INFO] Accepted node {address}")
         self.known_node_address_set.add(address)
 
-    async def accept_new_transaction(self, transaction: Transaction, origin: str):
+    async def accept_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(
             transaction.transaction_hash)
-        logger.info(
-            f"Received transaction {transaction_hash_hex} from {origin}")
+        print(f"[INFO] Received transaction {transaction_hash_hex} from {origin}")
 
         # 1. Check if transaction in transaction pool
         async with self.lock:
@@ -177,36 +178,6 @@ class Node:
         await self._broadcast_transaction(transaction, origin)
 
         # 5. TODO: Add block to blockchain if the condition is met
-
-    async def accept_new_block(self, block: Block, origin: str):
-        block_hash_hex = binascii.hexlify(block.block_hash)
-        logger.info(f"Received block {block_hash_hex} from {origin}")
-
-        # 1. Validate block
-        block.validate(self.account_dict)
-
-        # 2. TODO: take action is the block is invalid (slashing)
-
-        # 3. Add block to blockchain
-        async with self.lock:
-            if self.blockchain is not None:
-                self.blockchain.add_new_block(block)
-            else:
-                self.blockchain = Blockchain(block)
-
-        # 4. Apply account stake and balance changes. Give tokens to the validator
-        block.update_account_dict(self.account_dict)
-
-        # 5. Remove transactions from transaction pool
-        async with self.lock:
-            for transaction in block.transaction_list:
-                transaction_hash_hex = binascii.hexlify(
-                    transaction.transaction_hash)
-                self.transaction_pool.pop(transaction_hash_hex, None)
-                self.transaction_broadcasted.pop(transaction_hash_hex, None)
-
-        # 6. Broadcast
-        await self._broadcast_block(block, origin)
 
     async def _broadcast_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(transaction.transaction_hash)
@@ -232,17 +203,52 @@ class Node:
                 # requests.post(url=url, headers=headers, json=data)
                 async with httpx.AsyncClient() as client:
                     await client.post(url, headers=headers, json=data)
-                logger.info(
-                    f'Broadcasted transaction {transaction_hash_hex} to {address}')
+                print(f'[INFO] Broadcasted transaction {transaction_hash_hex} to {address}')
             except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
-                logger.info(f"Detected disconnection of {address}")
+                print(f"[WARN] Detected disconnection of {address}")
                 disconnected_address_set.add(address)
 
         async with self.lock:
             self.known_node_address_set.difference_update(
                 disconnected_address_set)
 
-    async def _broadcast_block(self, block: Block, origin: str):
+    async def accept_block(self, block: Block, origin: str):
+        block_hash_hex = binascii.hexlify(block.block_hash)
+        print(f"[INFO] Received block {block_hash_hex} from {origin}")
+
+        # 1. Validate block
+        block.validate(self.account_dict)
+
+        # 2. TODO: take action is the block is invalid (slashing)
+
+        # 3. TODO: check if the validator is the right validator
+
+        # 3. Add block to blockchain
+        async with self.lock:
+            if self.blockchain is not None:
+                self.blockchain.add_new_block(block)
+            else:
+                self.blockchain = Blockchain(block)
+
+        # 4. Apply account stake and balance changes. Give tokens to the validator.
+        block.update_account_dict(self.account_dict)
+        self.account_stake_dict = {
+            account.public_key_hex: account.stake for account in self.account_dict
+            if account.stake > 0
+        }
+
+        # 5. Remove transactions from transaction pool
+        async with self.lock:
+            for transaction in block.transaction_list:
+                transaction_hash_hex = binascii.hexlify(
+                    transaction.transaction_hash)
+                self.transaction_pool.pop(transaction_hash_hex, None)
+                self.transaction_broadcasted.pop(transaction_hash_hex, None)
+
+        # 6. Broadcast
+        await self.broadcast_block(block, origin)
+
+    async def broadcast_block(self, block: Block, origin: str):
         block_hash_hex = binascii.hexlify(block.block_hash)
 
         # add block to block_hash_hex to address set dict
@@ -264,26 +270,40 @@ class Node:
                     self.block_broadcasted[block_hash_hex].add(address)
                 async with httpx.AsyncClient() as client:
                     await client.post(url, headers=headers, json=data)
-                logger.info(f'Broadcasted block {block_hash_hex} to {address}')
+                print(f'[INFO] Broadcasted block {block_hash_hex} to {address}')
             except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
-                logger.info(f"Detected disconnection of {address}")
+                print(f"[WARN] Detected disconnection of {address}")
                 disconnected_address_set.add(address)
 
         async with self.lock:
             self.known_node_address_set.difference_update(
                 disconnected_address_set)
 
+    async def accept_validator_rand(self, validator_rand: ValidatorRand):
+        # 1. check if the validator rand exists
+        pass
+
+    async def broadcast_validator_rand(self, validator_rand: ValidatorRand):
+        # 1. broadcast the validator rand to known nodes
+
+        # 3. delete
+        print('broadcast_validator_rand')
+        pass
+
     ##### PoS Consesus functions #####
-    def _generate_validator_rand(self):
-        return int(secrets.token_hex(8))
 
-    def accept_validator_rand(self, public_key_hex: bytes, rand: int):
-        # TODO: determine disconnected validator
+    def create_validator_rand(self, public_key_hex: bytes) -> Optional[ValidatorRand]:
+        if self.blockchain is None:
+            return None
+
+        return ValidatorRand(public_key_hex, binascii.hexlify(self.blockchain.head.block_hash))
+
+    def _get_validator(self):
         pass
 
-    def broadcast_validator_rand(self):
-        pass
-
-    def create_block(self):
+    def create_block(self) -> Block:
         # 1. order transactions in transaction pool by the amount of stake
+        pass
+
+    def run_consensus_protocol(self) -> bool:
         pass

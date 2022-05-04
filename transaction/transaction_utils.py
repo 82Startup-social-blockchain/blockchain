@@ -1,6 +1,5 @@
 
 import binascii
-from datetime import datetime
 from typing import Any, Optional
 
 from cryptography.hazmat.primitives.asymmetric import ec

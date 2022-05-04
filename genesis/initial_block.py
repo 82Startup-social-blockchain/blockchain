@@ -7,7 +7,6 @@ import time
 import json
 
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
 
 from account.account_full import FullAccount
 from block.block import Block
@@ -34,7 +33,7 @@ def create_initial_block(save_accounts=True) -> Block:
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
             )
-            private_key_hex = binascii.hexlify(private_key_serialized)
+            private_key_hex = binascii.hexlify(private_key_serialized).decode('utf-8')
             with open(os.path.join(os.getcwd(), "genesis", f"account_{idx}.json"), 'w') as fp:
                 json.dump(private_key_hex, fp)
 
