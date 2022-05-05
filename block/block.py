@@ -2,9 +2,9 @@ import binascii
 import json
 from typing import Dict, Optional, List
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.exceptions import InvalidSignature
 
 from account.account import Account
 from transaction.transaction import Transaction
@@ -71,11 +71,7 @@ class Block:
 
         # add signature hex
         if self.signature is not None:
-            signature_hex = binascii.hexlify(self.signature)
-        else:
-            signature_hex = None
-        block_dict["signature_hex"] = signature_hex.decode('utf-8') \
-            if signature_hex is not None else None
+            block_dict["signature_hex"] = binascii.hexlify(self.signature).decode('utf-8')
 
         # add block hash
         block_dict["block_hash_hex"] = binascii.hexlify(

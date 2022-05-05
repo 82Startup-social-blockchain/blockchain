@@ -30,14 +30,10 @@ async def choose_validator():
     node = get_node()
     public_key_hex = get_public_key_hex()
 
-    print("length", len(node.blockchain.head))
-
     # Broadcast validator rand every 10 seconds when the last digit of the second is 0
-    print(int(time.time()))
     if int(time.time()) % 10 == 0:
         # every 10 seconds with the last digit of 0 (0, 10, 20, ...), broadcast validator rand
         validator_rand = node.create_validator_rand(public_key_hex)
-        print(validator_rand)
         await node.broadcast_validator_rand(validator_rand)
 
     # Create and broadcast block every 10 seconds when the last digit of the second is 5

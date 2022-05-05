@@ -14,7 +14,8 @@ class ValidatorRand:
         validator_public_key_hex: bytes,
         previous_block_hash_hex: bytes,
         timestamp: Optional[float] = None,
-        rand: Optional[int] = None
+        rand: Optional[int] = None,
+        signature: Optional[bytes] = None,
     ):
         if timestamp is not None:
             self.timestamp = timestamp
@@ -29,12 +30,12 @@ class ValidatorRand:
         self.validator_public_key_hex = validator_public_key_hex
         self.previous_block_hash_hex = previous_block_hash_hex
 
-        self.signature = None
+        self.signature = signature
 
     def _to_presigned_dict(self) -> Dict:
         return {
-            "previous_block_hash_hex": self.previous_block_hash_hex,
-            "validator_public_key_hex": self.validator_public_key_hex,
+            "previous_block_hash_hex": self.previous_block_hash_hex.decode('utf-8'),
+            "validator_public_key_hex": self.validator_public_key_hex.decode('utf-8'),
             "rand": self.rand,
             "timestamp": self.timestamp
         }
@@ -43,11 +44,7 @@ class ValidatorRand:
         validator_rand_dict = self._to_presigned_dict()
         # add signature hex
         if self.signature is not None:
-            signature_hex = binascii.hexlify(self.signature)
-        else:
-            signature_hex = None
-        validator_rand_dict["signature_hex"] = signature_hex.decode('utf-8') \
-            if signature_hex is not None else None
+            validator_rand_dict["signature_hex"] = binascii.hexlify(self.signature).decode('utf-8')
 
         return validator_rand_dict
 

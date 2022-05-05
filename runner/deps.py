@@ -18,7 +18,7 @@ PRIVATE_KEY = serialization.load_der_private_key(private_key_serialized, None)
 PUBLIC_KEY = PRIVATE_KEY.public_key()
 PUBLIC_KEY_HEX = get_public_key_hex(PUBLIC_KEY)
 
-node = Node(os.environ["ADDRESS"])
+node = Node(os.environ["ADDRESS"], private_key=PRIVATE_KEY)
 
 node.join_network()
 

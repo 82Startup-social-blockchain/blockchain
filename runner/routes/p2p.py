@@ -95,6 +95,7 @@ async def accept_validator_rand(
         data.validator_public_key_hex.encode('utf-8'),
         data.previous_block_hash_hex.encode('utf-8'),
         timestamp=data.timestamp,
-        rand=data.rand
+        rand=data.rand,
+        signature=binascii.unhexlify(data.signature_hex.encode('utf-8'))
     )
-    node.accept_validator_rand(validator_rand)
+    await node.accept_validator_rand(validator_rand)

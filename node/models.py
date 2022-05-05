@@ -11,7 +11,7 @@ class BlockValidationRequest(BaseModel):
     transaction_hash_hex_list: List[str]    # list of bytes decoded to str
     validator_public_key_hex: str           # bytes decoded to str
     timestamp: float                        # unix timestamp float
-    signature_hex: str                      # bytes decoded to str
+    signature_hex: Optional[str]            # bytes decoded to str
     block_hash_hex: str                     # bytes decoded to str
     transaction_dict_list: List[dict]
 
@@ -43,5 +43,5 @@ class ValidatorRandRequest(BaseModel):
     validator_public_key_hex: str  # bytes decoded to str
     rand: int                      # random number submitted by a validator
     previous_block_hash_hex: str   # previous block hash hex decoded to str
-    timestamp: int                 # timestamp of when the rand num is generated
-    signature: str                 # signature signed by the validator
+    timestamp: float               # timestamp of when the rand num is generated
+    signature_hex: Optional[str]   # signature signed by the validator

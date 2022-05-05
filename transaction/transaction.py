@@ -133,10 +133,10 @@ class Transaction:
 
         # Add signature hex
         if self.signature is not None:
-            signature_hex = binascii.hexlify(self.signature)
+            signature_hex = binascii.hexlify(self.signature).decode('utf-8')
         else:
             signature_hex = None
-        tx_dict["signature_hex"] = signature_hex.decode('utf-8') if signature_hex is not None else None
+        tx_dict["signature_hex"] = signature_hex if signature_hex is not None else None
 
         # Add transaction hash
         tx_dict["transaction_hash_hex"] = binascii.hexlify(self.transaction_hash).decode('utf-8')

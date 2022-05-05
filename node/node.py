@@ -3,7 +3,9 @@ import binascii
 import json
 from typing import Optional
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes, serialization
 import httpx
 import requests
 
@@ -32,6 +34,7 @@ class Node:
         self.account_dict = dict()  # { account_public_key_hex: Account }
         self.account_stake_dict = dict()
         self.validator_rand_dict = dict()  # { validator_public_key_hex: random number }
+        self.block_validator_dict = dict()  # { previous_block_hash_hex: validator }
 
         self.lock = asyncio.Lock()
 
@@ -245,7 +248,9 @@ class Node:
                 self.transaction_pool.pop(transaction_hash_hex, None)
                 self.transaction_broadcasted.pop(transaction_hash_hex, None)
 
-        # 6. Broadcast
+        # 6. TODO: clear validator_rand_dict
+
+        # 7. Broadcast
         await self.broadcast_block(block, origin)
 
     async def broadcast_block(self, block: Block, origin: str):
@@ -280,15 +285,47 @@ class Node:
                 disconnected_address_set)
 
     async def accept_validator_rand(self, validator_rand: ValidatorRand):
-        # 1. check if the validator rand exists
-        pass
+        print(f"[INFO] Received validator rand {validator_rand.rand} from validator {validator_rand.validator_public_key_hex}")
+        # 1. Validate validator_rand
+        if validator_rand.signature is None:
+            print(f"[ERROR] Signature None from validator {validator_rand.validator_public_key_hex}")
+            raise InvalidSignature
+
+        public_key_serialized = binascii.unhexlify(validator_rand.validator_public_key_hex)
+        public_key = serialization.load_der_public_key(public_key_serialized)
+        public_key.verify(
+            validator_rand.signature,
+            json.dumps(validator_rand._to_presigned_dict()).encode('utf-8'),
+            ec.ECDSA(hashes.SHA256())
+        )
+        # TODO: check that rand is non-negative
+
+        # 2. Add to validator rand dict
+        # TODO: What if validator sends rand key multiple times? - choose the earliest one?
+        if validator_rand.validator_public_key_hex not in self.validator_rand_dict:
+            self.validator_rand_dict[validator_rand.validator_public_key_hex] = validator_rand.rand
 
     async def broadcast_validator_rand(self, validator_rand: ValidatorRand):
-        # 1. broadcast the validator rand to known nodes
+        # TODO: assume receiving same number multiple times like block and transaction
 
-        # 3. delete
-        print('broadcast_validator_rand')
-        pass
+        # 1. Broadcast the validator rand to known nodes
+        disconnected_address_set = set([])
+        for address in self.known_node_address_set:
+            url = address + constants.VALIDATOR_RAND_PATH
+            headers = {"Content-type": "application/json"}
+            data = validator_rand.to_dict()
+            try:
+                async with httpx.AsyncClient() as client:
+                    await client.post(url, headers=headers, json=data)
+                print(f'[INFO] Broadcasted validator rand {data["rand"]} to {address}')
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
+                print(f"[WARN] Detected disconnection of {address}")
+                disconnected_address_set.add(address)
+
+        async with self.lock:
+            self.known_node_address_set.difference_update(
+                disconnected_address_set)
+            self.validator_rand_dict[validator_rand.validator_public_key_hex] = validator_rand.rand
 
     ##### PoS Consesus functions #####
 
@@ -296,7 +333,9 @@ class Node:
         if self.blockchain is None:
             return None
 
-        return ValidatorRand(public_key_hex, binascii.hexlify(self.blockchain.head.block_hash))
+        validator_rand = ValidatorRand(public_key_hex, binascii.hexlify(self.blockchain.head.block_hash))
+        validator_rand.sign(self.private_key)
+        return validator_rand
 
     def _get_validator(self):
         pass
@@ -306,4 +345,15 @@ class Node:
         pass
 
     def run_consensus_protocol(self) -> bool:
-        pass
+        # 1. check if the node has received rand from all validators
+        if set(self.account_stake_dict) != set(self.validator_rand_dict):
+            # TODO: what if nodes to slash differ for different nodes?
+            # TODO: add slashing to transaction pool?
+            pass
+
+        stake_sum = sum([self.account_stake_dict[account_key] for account_key in self.account_stake_dict])
+        # order by public key hex
+
+        # get validator
+
+        # save validator to block_validator_dict with previosu block hash as the key
