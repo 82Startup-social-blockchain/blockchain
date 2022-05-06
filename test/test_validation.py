@@ -30,6 +30,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         # account1 signs empty block to get balance ####
         self.block1 = Block(
             self.block0,
+            None,
             [],
             self.public_key_hex1,
             time.time()
@@ -66,6 +67,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         #### Block 2 - signed by account2 ####
         self.block2 = Block(
             self.block1,
+            None,
             [self.transaction1, self.transaction2, self.transaction3],
             self.public_key_hex2,
             time.time()
@@ -83,6 +85,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         #### Block 3 - signed by account3 ###
         self.block3 = Block(
             self.block2,
+            None,
             [self.transaction4],
             self.public_key_hex3,
             time.time()

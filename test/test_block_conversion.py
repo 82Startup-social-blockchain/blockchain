@@ -45,6 +45,7 @@ class BlockConversionTestCase(unittest.TestCase):
 
         self.block1 = Block(
             None,
+            None,
             [self.transaction1, self.transaction2],
             get_public_key_hex(self.account1.private_key.public_key()),
             time.time()
@@ -53,6 +54,7 @@ class BlockConversionTestCase(unittest.TestCase):
 
         self.block2 = Block(
             self.block1,
+            None,
             [self.transaction3],
             get_public_key_hex(self.account2.private_key.public_key()),
             time.time()

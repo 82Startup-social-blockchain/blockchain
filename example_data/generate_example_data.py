@@ -50,6 +50,7 @@ transaction3.sign_transaction(account2.private_key)
 # Block1 signed by account1 => account1 gets tokens
 block1 = Block(
     block0,
+    None,
     [transaction1, transaction2, transaction3],
     get_public_key_hex(account1.private_key.public_key()),
     time.time()
@@ -87,6 +88,7 @@ transaction6.sign_transaction(account1.private_key)
 # Block2 signed by account2 => account2 gets tokens
 block2 = Block(
     block1,
+    None,
     [transaction4, transaction5, transaction6],
     get_public_key_hex(account2.private_key.public_key()),
     time.time()
@@ -128,6 +130,7 @@ transaction9.sign_transaction(account2.private_key)
 # Block3 signed by account2
 block3 = Block(
     block2,
+    None,
     [transaction7, transaction8, transaction9],
     get_public_key_hex(account2.private_key.public_key()),
     time.time()
@@ -173,6 +176,7 @@ transaction12.sign_transaction(account2.private_key)
 # Block4 signed by account1
 block4 = Block(
     block3,
+    None
     [transaction10, transaction11, transaction12],
     get_public_key_hex(account1.private_key.public_key()),
     time.time()

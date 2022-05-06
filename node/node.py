@@ -1,7 +1,9 @@
 import asyncio
 import binascii
+import itertools
 import json
-from typing import Optional
+from time import time
+from typing import Dict, Optional
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -14,6 +16,7 @@ from block.blockchain import Blockchain
 from block.validator_rand import ValidatorRand
 from transaction.transaction import Transaction
 from utils import constants
+from utils.crypto import get_public_key_hex
 
 
 class Node:
@@ -27,14 +30,14 @@ class Node:
         self.known_node_address_set = self._initialize_known_node_address_set()
         self.blockchain = None
 
-        self.transaction_pool = dict()  # { transaction_hash_hex: Transaction }
+        self.transaction_pool: Dict[bytes, Transaction] = dict()  # { transaction_hash_hex: Transaction }
         self.transaction_broadcasted = dict()  # { transactino_hash_hex: set }
         self.block_broadcasted = dict()  # { block_hash_hex: set }
 
         self.account_dict = dict()  # { account_public_key_hex: Account }
-        self.account_stake_dict = dict()
-        self.validator_rand_dict = dict()  # { validator_public_key_hex: random number }
-        self.block_validator_dict = dict()  # { previous_block_hash_hex: validator }
+        self.account_stake_dict: Dict[bytes, int] = dict()
+        self.validator_rand_dict: Dict[bytes, int] = dict()  # { validator_public_key_hex: random number }
+        self.block_validator_dict: Dict[bytes, bytes] = dict()  # { previous_block_hash_hex: validator }
 
         self.lock = asyncio.Lock()
 
@@ -222,14 +225,15 @@ class Node:
         # 1. Validate block
         block.validate(self.account_dict)
 
-        # 2. TODO: take action is the block is invalid (slashing)
+        # 2. TODO: check if the validator is the right validator
 
-        # 3. TODO: check if the validator is the right validator
+        # if binascii.hexlify(block.previous_block) not in self.block_validator_dict or \
 
-        # 3. Add block to blockchain
+        # 3. Add block to blockchain if it is the most recent
         async with self.lock:
             if self.blockchain is not None:
-                self.blockchain.add_new_block(block)
+                if block.previous_block.block_hash == self.blockchain.head.block_hash:
+                    self.blockchain.add_new_block(block)
             else:
                 self.blockchain = Blockchain(block)
 
@@ -337,12 +341,36 @@ class Node:
         validator_rand.sign(self.private_key)
         return validator_rand
 
-    def _get_validator(self):
-        pass
+    def _get_validator(self) -> bytes:
+        # assume that all stake amounts and random numbers are integers
+        stake_sum = sum(self.account_stake_dict.values())
+        rand_num = sum(self.validator_rand_dict.values()) % stake_sum
+
+        validator_arr, stake_arr = list(zip(*sorted(self.account_stake_dict.items(), key=lambda x: x[1])))
+        stake_arr = itertools.accumulate(stake_arr)
+        for i in range(len(stake_arr)):
+            if rand_num < stake_arr[i]:
+                validator = validator_arr[i]
+                break
+        return validator
 
     def create_block(self) -> Block:
         # 1. order transactions in transaction pool by the amount of stake
-        pass
+        # TODO: eventual inclusion?
+        transaction_candidates = []  # tuple of transaction and account stake
+        for transaction_hash_hex in self.transaction_pool:
+            transaction = self.transaction_pool[transaction_hash_hex]
+            transaction_candidates.append((transaction, self.account_stake_dict[transaction.transaction_source.source_public_key_hex]))
+        transaction_candidates = sorted(transaction_candidates, key=lambda x: x[1], reverse=True)[:constants.MAX_TX_PER_BLOCK]
+        tx_list = list(map(lambda x: x[0], transaction_candidates))
+        block = Block(
+            None,
+            binascii.hexlify(self.blockchain.head.block_hash),
+            tx_list,
+            get_public_key_hex(self.private_key.public_key()),
+            time.time()
+        )
+        return block
 
     def run_consensus_protocol(self) -> bool:
         # 1. check if the node has received rand from all validators
@@ -351,9 +379,11 @@ class Node:
             # TODO: add slashing to transaction pool?
             pass
 
-        stake_sum = sum([self.account_stake_dict[account_key] for account_key in self.account_stake_dict])
-        # order by public key hex
+        # 2. get validator
+        validator = self._get_validator()
+        print(f"[INFO] Validator chosen - {validator}")
 
-        # get validator
+        # 3. save validator to validate signed block later
+        self.block_validator_dict[binascii.hexlify(self.blockchain.head.block_hash)] = validator
 
-        # save validator to block_validator_dict with previosu block hash as the key
+        return validator == get_public_key_hex(self.private_key.public_key())

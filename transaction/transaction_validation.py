@@ -30,6 +30,9 @@ class TransactionValidation:
         if self.transaction.transaction_target.tx_token > self.account.balance:
             raise TransactionStakeError(self.transaction, message="Stake amount higher than balance")
 
+        if not float(self.transaction.transaction_target.tx_token).is_integer():
+            raise TransactionStakeError(self.transaction, message="Stake token amount not an integer")
+
     def _validate_transfer(self):
         if self.account is None:
             raise TransactionAccountError(self.transaction, message="Account nonexistent")

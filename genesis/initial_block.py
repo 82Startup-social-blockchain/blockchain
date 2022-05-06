@@ -49,6 +49,7 @@ def create_initial_block(save_accounts=True) -> Block:
 
     block = Block(
         None,
+        None,
         transactions,
         get_public_key_hex(ICO_ACCOUNTS[0].private_key.public_key()),
         time.time()

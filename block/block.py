@@ -17,11 +17,13 @@ class Block:
     def __init__(
         self,
         previous_block: Optional['Block'],
+        previous_block_hash_hex: Optional[bytes],
         transaction_list: List[Transaction],
         validator_public_key_hex: bytes,
         timestamp: float
     ):
         self.previous_block = previous_block
+        self.previous_block_hash_hex = previous_block_hash_hex
         self.transaction_list = transaction_list
         self.timestamp = timestamp
         self.validator_public_key_hex = validator_public_key_hex
@@ -48,7 +50,9 @@ class Block:
 
     def _to_presigned_dict(self) -> dict:
         # conver to json serializable dictionary that will be hashed and signed
-        if self.previous_block is not None:
+        if self.previous_block_hash_hex is not None:
+            previous_block_hash_hex = self.previous_block_hash_hex
+        elif self.previous_block is not None:
             previous_block_hash_hex = binascii.hexlify(
                 self.previous_block.block_hash).decode('utf-8')
         else:
@@ -83,7 +87,7 @@ class Block:
 
         return block_dict
 
-    def _get_hash(self):
+    def _get_hash(self) -> bytes:
         digest = hashes.Hash(hashes.SHA256())
         digest.update(json.dumps(self._to_presigned_dict()).encode('utf-8'))
         return digest.finalize()
@@ -178,6 +182,7 @@ def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = N
 
     block = Block(
         previous_block,
+        binascii.hexlify(previous_block.block_hash) if previous_block is not None else None,
         transaction_list,
         block_dict["validator_public_key_hex"].encode('utf-8'),
         block_dict["timestamp"]
