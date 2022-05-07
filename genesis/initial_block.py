@@ -15,7 +15,7 @@ from transaction.transaction_utils import generate_transaction
 from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS
 from utils.crypto import get_public_key_hex
 
-ICO_ACCOUNTS = [FullAccount() for _ in range(10)]
+ICO_ACCOUNTS = [FullAccount() for _ in range(4)]
 
 
 def create_initial_block(save_accounts=True) -> Block:

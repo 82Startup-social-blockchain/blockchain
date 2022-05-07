@@ -6,6 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from block.block import create_block_from_dict
+from block.block_exception import BlockNotHeadError
 from block.validator_rand import ValidatorRand
 from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest, ValidatorRandRequest
 from node.node import Node
@@ -34,17 +35,16 @@ async def validate_block(
         # make a block pool to store candidate blocks
         # for now, just check if the previous block is head
         if node.blockchain.head.block_hash != binascii.unhexlify(blockRequest.previous_block_hash_hex.encode('utf-8')):
-            logger.error("Requested block is not linked to the current head")
-            raise HTTPException(
-                status_code=409,
-                detail="Requested block is not linked to the current head"
+            raise BlockNotHeadError(
+                None, message="Requested block is not linked to the current head",
+                block_hash=blockRequest.block_hash_hex.encode('utf-8')
             )
         previous_block = node.blockchain.head
 
     block_dict = blockRequest.dict()
     origin = block_dict["origin"]
     del block_dict["origin"]
-    block = create_block_from_dict(blockRequest.dict(), previous_block)
+    block = create_block_from_dict(blockRequest.dict(), previous_block)  # linked to previous_block
 
     # 2. add block to blockchain
     logger.info("Adding new block to blockchain")

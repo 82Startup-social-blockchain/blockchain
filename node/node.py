@@ -2,7 +2,7 @@ import asyncio
 import binascii
 import itertools
 import json
-from time import time
+import time
 from typing import Dict, Optional
 
 from cryptography.exceptions import InvalidSignature
@@ -12,10 +12,12 @@ import httpx
 import requests
 
 from block.block import Block
+from block.block_exception import BlockPreviousBlockError, BlockValidationError, BlockValidatorError
 from block.blockchain import Blockchain
 from block.validator_rand import ValidatorRand
 from transaction.transaction import Transaction
 from utils import constants
+from node.utils import get_stakes_from_accounts
 from utils.crypto import get_public_key_hex
 
 
@@ -35,7 +37,6 @@ class Node:
         self.block_broadcasted = dict()  # { block_hash_hex: set }
 
         self.account_dict = dict()  # { account_public_key_hex: Account }
-        self.account_stake_dict: Dict[bytes, int] = dict()
         self.validator_rand_dict: Dict[bytes, int] = dict()  # { validator_public_key_hex: random number }
         self.block_validator_dict: Dict[bytes, bytes] = dict()  # { previous_block_hash_hex: validator }
 
@@ -149,13 +150,10 @@ class Node:
         if self.blockchain is not None:
             self.blockchain.add_new_block(block)
             block.update_account_dict(self.account_dict)
-            self.account_stake_dict = {
-                account.public_key_hex: account.stake for account in self.account_dict
-                if account.stake > 0
-            }
         else:
             self.blockchain = Blockchain(block)
             self.account_dict = self.blockchain.initialize_accounts()
+        print(f"[INFO] Account stakes after ico block initialization: {get_stakes_from_accounts(self.account_dict)}")
 
     ##### P2P data handling #####
 
@@ -225,9 +223,18 @@ class Node:
         # 1. Validate block
         block.validate(self.account_dict)
 
-        # 2. TODO: check if the validator is the right validator
-
-        # if binascii.hexlify(block.previous_block) not in self.block_validator_dict or \
+        # 2. Check if the validator is the right validator
+        # The genesis block will not be accepted through this method => previous_block or previous_block_hash_hex not None
+        if block.previous_block is not None:
+            previous_block_hash_hex = binascii.hexlify(block.previous_block.block_hash)
+        elif block.previous_block is not None:
+            previous_block_hash_hex = block.previous_block_hash_hex
+        else:
+            raise BlockPreviousBlockError(block, message="Previous block hash hex nonexistent")
+        if previous_block_hash_hex not in self.block_validator_dict:
+            raise BlockValidatorError(block, message="No validator of the received block")
+        if self.block_validator_dict[previous_block_hash_hex] != block.validator_public_key_hex:
+            raise BlockValidationError(block, message="Wrong validator of the received block")
 
         # 3. Add block to blockchain if it is the most recent
         async with self.lock:
@@ -239,10 +246,6 @@ class Node:
 
         # 4. Apply account stake and balance changes. Give tokens to the validator.
         block.update_account_dict(self.account_dict)
-        self.account_stake_dict = {
-            account.public_key_hex: account.stake for account in self.account_dict
-            if account.stake > 0
-        }
 
         # 5. Remove transactions from transaction pool
         async with self.lock:
@@ -343,13 +346,13 @@ class Node:
 
     def _get_validator(self) -> bytes:
         # assume that all stake amounts and random numbers are integers
-        stake_sum = sum(self.account_stake_dict.values())
+        account_stake_dict = get_stakes_from_accounts(self.account_dict)
+        stake_sum = sum(account_stake_dict.values())
         rand_num = sum(self.validator_rand_dict.values()) % stake_sum
 
-        validator_arr, stake_arr = list(zip(*sorted(self.account_stake_dict.items(), key=lambda x: x[1])))
-        stake_arr = itertools.accumulate(stake_arr)
-        for i in range(len(stake_arr)):
-            if rand_num < stake_arr[i]:
+        validator_arr, stake_arr = list(zip(*sorted(account_stake_dict.items(), key=lambda x: x[1])))
+        for i, stake in enumerate(itertools.accumulate(stake_arr)):
+            if rand_num < stake:
                 validator = validator_arr[i]
                 break
         return validator
@@ -357,10 +360,11 @@ class Node:
     def create_block(self) -> Block:
         # 1. order transactions in transaction pool by the amount of stake
         # TODO: eventual inclusion?
+        account_stake_dict = get_stakes_from_accounts(self.account_dict)
         transaction_candidates = []  # tuple of transaction and account stake
         for transaction_hash_hex in self.transaction_pool:
             transaction = self.transaction_pool[transaction_hash_hex]
-            transaction_candidates.append((transaction, self.account_stake_dict[transaction.transaction_source.source_public_key_hex]))
+            transaction_candidates.append((transaction, account_stake_dict[transaction.transaction_source.source_public_key_hex]))
         transaction_candidates = sorted(transaction_candidates, key=lambda x: x[1], reverse=True)[:constants.MAX_TX_PER_BLOCK]
         tx_list = list(map(lambda x: x[0], transaction_candidates))
         block = Block(
@@ -370,13 +374,20 @@ class Node:
             get_public_key_hex(self.private_key.public_key()),
             time.time()
         )
+        print(f"[INFO] Created block {block.to_dict()}")
         return block
 
     def run_consensus_protocol(self) -> bool:
+        account_stake_dict = get_stakes_from_accounts(self.account_dict)
+
         # 1. check if the node has received rand from all validators
-        if set(self.account_stake_dict) != set(self.validator_rand_dict):
+        if set(account_stake_dict.keys()) != set(self.validator_rand_dict.keys()):
             # TODO: what if nodes to slash differ for different nodes?
             # TODO: add slashing to transaction pool?
+            print(account_stake_dict)
+            print(self.validator_rand_dict)
+            n_missing = len(account_stake_dict) - len(self.validator_rand_dict)
+            print(f"[WARN] Missing {n_missing} validators's rand - {set(account_stake_dict.keys()).difference(set(self.validator_rand_dict.keys()))}")
             pass
 
         # 2. get validator

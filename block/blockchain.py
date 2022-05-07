@@ -1,8 +1,10 @@
+import binascii
 import logging
 from typing import Dict, List, Optional
 
 from account.account import Account
 from block.block import Block, create_block_from_dict
+from block.block_exception import BlockNotHeadError
 from transaction.transaction_type import TransactionType
 from utils import constants
 
@@ -36,8 +38,14 @@ class Blockchain:
             previous_block = current_block
         self.head = current_block
 
-    def add_new_block(self, block: Block):
-        # assume that input block is validated and previous block is already set to head
+    def add_new_block(self, block: Block) -> None:
+        # assume that input block is validated
+        if block.previous_block is None and block.previous_block_hash_hex is not None:
+            if self.head.block_hash != binascii.unhexlify(block.previous_block_hash_hex):
+                raise BlockNotHeadError(
+                    block, message="Requested block is not linked to the current head"
+                )
+            block.previous_block = self.head
         self.head = block
 
     def validate(self):
@@ -53,6 +61,7 @@ class Blockchain:
 
     def initialize_accounts(self) -> Dict[bytes, Account]:
         # initialize Account dict - assume blockchain is valid
+        # return { public key: Account object }
         if self.head is None:
             return {}
 

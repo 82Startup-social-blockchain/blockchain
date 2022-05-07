@@ -38,12 +38,10 @@ async def choose_validator():
 
     # Create and broadcast block every 10 seconds when the last digit of the second is 5
     if int(time.time()) % 10 == 5:
-        is_validator = await node.run_consensus_protocol()
+        is_validator = node.run_consensus_protocol()
         if is_validator:
             block = node.create_block()
             await node.broadcast_block(block, os.environ["ADDRESS"])
-
-    # print("Choosing validator")
 
     # 1. generate a random number and broadcast
 
