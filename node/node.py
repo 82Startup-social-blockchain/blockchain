@@ -360,13 +360,16 @@ class Node:
     def create_block(self) -> Block:
         # 1. order transactions in transaction pool by the amount of stake
         # TODO: eventual inclusion?
+        print('****** node.py create_block *******')
         account_stake_dict = get_stakes_from_accounts(self.account_dict)
+
         transaction_candidates = []  # tuple of transaction and account stake
         for transaction_hash_hex in self.transaction_pool:
             transaction = self.transaction_pool[transaction_hash_hex]
             transaction_candidates.append((transaction, account_stake_dict[transaction.transaction_source.source_public_key_hex]))
         transaction_candidates = sorted(transaction_candidates, key=lambda x: x[1], reverse=True)[:constants.MAX_TX_PER_BLOCK]
         tx_list = list(map(lambda x: x[0], transaction_candidates))
+        print('**** tx_list: ', tx_list)
         block = Block(
             None,
             binascii.hexlify(self.blockchain.head.block_hash),
@@ -374,6 +377,7 @@ class Node:
             get_public_key_hex(self.private_key.public_key()),
             time.time()
         )
+        block.sign_block(self.private_key)
         print(f"[INFO] Created block {block.to_dict()}")
         return block
 
@@ -381,7 +385,8 @@ class Node:
         account_stake_dict = get_stakes_from_accounts(self.account_dict)
 
         # 1. check if the node has received rand from all validators
-        if set(account_stake_dict.keys()) != set(self.validator_rand_dict.keys()):
+        # TODO: update to check for equality
+        if set(account_stake_dict.keys()) != set(self.validator_rand_dict.keys()) and len(self.validator_rand_dict) > 0:
             # TODO: what if nodes to slash differ for different nodes?
             # TODO: add slashing to transaction pool?
             print(account_stake_dict)

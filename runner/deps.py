@@ -17,6 +17,7 @@ with open(os.path.join(os.getcwd(), "genesis", os.environ["ACCOUNT_KEY_FILE_NAME
 PRIVATE_KEY = serialization.load_der_private_key(private_key_serialized, None)
 PUBLIC_KEY = PRIVATE_KEY.public_key()
 PUBLIC_KEY_HEX = get_public_key_hex(PUBLIC_KEY)
+print(f"[INFO] Initializing node with public key: {PUBLIC_KEY_HEX}")
 
 node = Node(os.environ["ADDRESS"], private_key=PRIVATE_KEY)
 

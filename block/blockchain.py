@@ -73,7 +73,7 @@ class Blockchain:
             block.update_account_dict(account_dict)
             previous_block = block
 
-        logger.info(f"Initialized {len(account_dict)} accounts")
+        print(f"[INFO] Initialized {len(account_dict)} accounts")
         return account_dict
 
         # TODO: add functino to append blocks to head instead of re-initializing

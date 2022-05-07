@@ -1,5 +1,6 @@
-import time
+import os
 import unittest
+import time
 
 from account.account_full import FullAccount
 from block.block import Block
@@ -8,24 +9,26 @@ from genesis.initial_block import create_initial_block
 from transaction.transaction_exception import TransactionAccountError, TransactionStakeError, TransactionTipError, TransactionTransferError
 from transaction.transaction_type import TransactionType
 from transaction.transaction_utils import generate_transaction
-from utils.constants import VALIDATION_REWARD
+from utils.constants import ICO_TOKENS, VALIDATION_REWARD
 from utils.crypto import get_public_key_hex
 
 
 class TransactionValidationTestCase(unittest.TestCase):
     def setUp(self):
-        self.account1 = FullAccount()
-        self.account2 = FullAccount()
-        self.account3 = FullAccount()
-        self.account4 = FullAccount()
+        self.account1 = FullAccount(private_key_file_path=os.path.join(os.getcwd(), "genesis", "account_0.json"))
+        self.account2 = FullAccount(private_key_file_path=os.path.join(os.getcwd(), "genesis", "account_1.json"))
+        self.account3 = FullAccount(private_key_file_path=os.path.join(os.getcwd(), "genesis", "account_2.json"))
+        self.account4 = FullAccount(private_key_file_path=os.path.join(os.getcwd(), "genesis", "account_3.json"))
+        self.account5 = FullAccount()
 
         self.public_key_hex1 = get_public_key_hex(self.account1.private_key.public_key())
         self.public_key_hex2 = get_public_key_hex(self.account2.private_key.public_key())
         self.public_key_hex3 = get_public_key_hex(self.account3.private_key.public_key())
         self.public_key_hex4 = get_public_key_hex(self.account4.private_key.public_key())
+        self.public_key_hex5 = get_public_key_hex(self.account5.private_key.public_key())
 
         #### Block 0 - ICO ####
-        self.block0 = create_initial_block(save_accounts=False)
+        self.block0 = create_initial_block(save_accounts=False, load_accounts=True)
 
         # account1 signs empty block to get balance ####
         self.block1 = Block(
@@ -103,27 +106,27 @@ class TransactionValidationTestCase(unittest.TestCase):
         self.block3.update_account_dict(self.account_dict)
 
     def test_valid_transactions(self):
-        # account1
-        self.assertEqual(self.account_dict[self.public_key_hex1].stake, 20 - 5)
-        self.assertEqual(self.account_dict[self.public_key_hex1].balance, VALIDATION_REWARD - 10 - 10 - 20 + 5)
+        # account1 - sign ico block
+        self.assertEqual(self.account_dict[self.public_key_hex1].stake, ICO_TOKENS + 20 - 5)
+        self.assertEqual(self.account_dict[self.public_key_hex1].balance,  2 * VALIDATION_REWARD - 10 - 10 - 20 + 5)
 
         # account2
-        self.assertEqual(self.account_dict[self.public_key_hex2].stake, 0)
+        self.assertEqual(self.account_dict[self.public_key_hex2].stake, ICO_TOKENS)
         self.assertEqual(self.account_dict[self.public_key_hex2].balance, VALIDATION_REWARD + 10)
 
         # account3
-        self.assertEqual(self.account_dict[self.public_key_hex3].stake, 0)
+        self.assertEqual(self.account_dict[self.public_key_hex3].stake, ICO_TOKENS)
         self.assertEqual(self.account_dict[self.public_key_hex3].balance, VALIDATION_REWARD + 9.5)
 
         # account4
-        self.assertIsNone(self.account_dict.get(self.public_key_hex4, None))
+        self.assertIsNone(self.account_dict.get(self.public_key_hex5, None))
 
     def test_invalid_stake_transactions(self):
         # Balance insufficient for staking
         transaction_error = generate_transaction(
             self.account1.private_key.public_key(),
             TransactionType.STAKE,
-            tx_token=100,
+            tx_token=300,
         )
         transaction_error.sign_transaction(self.account1.private_key)
         self.assertRaises(
@@ -133,14 +136,14 @@ class TransactionValidationTestCase(unittest.TestCase):
 
         # Staking account null
         transaction_error = generate_transaction(
-            self.account4.private_key.public_key(),
+            self.account5.private_key.public_key(),
             TransactionType.STAKE,
             tx_token=20,
         )
-        transaction_error.sign_transaction(self.account4.private_key)
+        transaction_error.sign_transaction(self.account5.private_key)
         self.assertRaises(
             TransactionAccountError,
-            lambda: transaction_error.validate(self.account_dict.get(self.public_key_hex4, None))
+            lambda: transaction_error.validate(self.account_dict.get(self.public_key_hex5, None))
         )
 
         # Staking token None
@@ -178,22 +181,22 @@ class TransactionValidationTestCase(unittest.TestCase):
 
         # Transfer account null
         transaction_error = generate_transaction(
-            self.account4.private_key.public_key(),
+            self.account5.private_key.public_key(),
             TransactionType.TRANSFER,
             tx_token=10,
             target_public_key=self.account2.private_key.public_key()
         )
-        transaction_error.sign_transaction(self.account4.private_key)
+        transaction_error.sign_transaction(self.account5.private_key)
         self.assertRaises(
             TransactionAccountError,
-            lambda: transaction_error.validate(self.account_dict.get(self.public_key_hex4, None))
+            lambda: transaction_error.validate(self.account_dict.get(self.public_key_hex5, None))
         )
 
         # Transfer amount greater than balance
         transaction_error = generate_transaction(
             self.account1.private_key.public_key(),
             TransactionType.TRANSFER,
-            tx_token=VALIDATION_REWARD,
+            tx_token=3*VALIDATION_REWARD,
             target_public_key=self.account2.private_key.public_key()
         )
         transaction_error.sign_transaction(self.account1.private_key)
@@ -242,22 +245,22 @@ class TransactionValidationTestCase(unittest.TestCase):
 
         # Tip account null
         transaction_error = generate_transaction(
-            self.account4.private_key.public_key(),
+            self.account5.private_key.public_key(),
             TransactionType.TIP,
             tx_token=10,
             target_public_key=self.account2.private_key.public_key()
         )
-        transaction_error.sign_transaction(self.account4.private_key)
+        transaction_error.sign_transaction(self.account5.private_key)
         self.assertRaises(
             TransactionAccountError,
-            lambda: transaction_error.validate(self.account_dict.get(self.public_key_hex4, None))
+            lambda: transaction_error.validate(self.account_dict.get(self.public_key_hex5, None))
         )
 
         # Tip amount greater than balance
         transaction_error = generate_transaction(
             self.account1.private_key.public_key(),
             TransactionType.TIP,
-            tx_token=VALIDATION_REWARD,
+            tx_token=3*VALIDATION_REWARD,
             target_public_key=self.account2.private_key.public_key()
         )
         transaction_error.sign_transaction(self.account1.private_key)

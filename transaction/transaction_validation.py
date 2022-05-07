@@ -48,7 +48,10 @@ class TransactionValidation:
         else:
             tx_fee = 0
         if tx_token + tx_fee > self.account.balance:
-            raise TransactionTransferError(self.transaction, message="Transfer token higher than balance")
+            raise TransactionTransferError(
+                self.transaction,
+                message=f"Transfer token amount (${tx_token}) higher than balance (${self.account.balance})"
+            )
 
         if self.transaction.transaction_target.target_public_key_hex is None:
             raise TransactionTransferError(self.transaction, message="Transfer target null")
@@ -68,7 +71,10 @@ class TransactionValidation:
         else:
             tx_fee = 0
         if tx_token + tx_fee > self.account.balance:
-            raise TransactionTipError(self.transaction, message="Tip amount higher than balance")
+            raise TransactionTipError(
+                self.transaction,
+                message=f"Tip amount (${tx_token}) higher than balance (${self.account.balance})"
+            )
 
         if self.transaction.transaction_target.target_public_key_hex is None:
             raise TransactionTipError(self.transaction, message="Tip target null")

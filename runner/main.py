@@ -40,6 +40,7 @@ async def choose_validator():
     if int(time.time()) % 10 == 5:
         is_validator = node.run_consensus_protocol()
         if is_validator:
+            print("[INFO] Chosen as the validator - creating block")
             block = node.create_block()
             await node.broadcast_block(block, os.environ["ADDRESS"])
 

@@ -51,7 +51,7 @@ class Block:
     def _to_presigned_dict(self) -> dict:
         # conver to json serializable dictionary that will be hashed and signed
         if self.previous_block_hash_hex is not None:
-            previous_block_hash_hex = self.previous_block_hash_hex
+            previous_block_hash_hex = self.previous_block_hash_hex.decode('utf-8')
         elif self.previous_block is not None:
             previous_block_hash_hex = binascii.hexlify(
                 self.previous_block.block_hash).decode('utf-8')
