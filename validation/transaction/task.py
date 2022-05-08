@@ -4,18 +4,17 @@ import time
 from tkinter import N
 from typing import TYPE_CHECKING, Optional
 
+from account.account import Account
+from validation.transaction.exception import TransactionAccountError, TransactionIcoError, \
+    TransactionValidationError, TransactionStakeError, TransactionTransferError, TransactionTipError
+from transaction.transaction_type import TransactionType
 from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS, VALIDATION_REWARD
 
 if TYPE_CHECKING:
     from transaction.transaction import Transaction
 
-from account.account import Account
-from transaction.transaction_exception import TransactionAccountError, TransactionIcoError, \
-    TransactionValidationError, TransactionStakeError, TransactionTransferError, TransactionTipError
-from transaction.transaction_type import TransactionType
 
-
-class TransactionValidation:
+class TransactionValidationTask:
     def __init__(self, transaction: Transaction, account: Optional[Account]):
         self.transaction = transaction
         self.account = account

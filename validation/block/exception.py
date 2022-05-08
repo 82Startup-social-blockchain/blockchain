@@ -11,7 +11,7 @@ class BlockValidationError(Exception):
         if block is not None:
             base_message = f"(block: {binascii.hexlify(block.block_hash)})"
         elif block_hash is not None:
-            base_message = f"(block: {binascii.hexlify(block_hash)}"
+            base_message = f"(block: {binascii.hexlify(block_hash)})"
 
         if message != "":
             error_message = f"{message} {base_message}"

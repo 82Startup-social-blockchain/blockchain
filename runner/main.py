@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import logging
 import time
@@ -24,36 +25,22 @@ app = FastAPI()
 @app.on_event("startup")
 @repeat_every(seconds=1, raise_exceptions=True)  # turn on raise_exceptions True for debugging
 async def choose_validator():
-    # TODO: implement RANDAO
     # TODO: make it so that node validation can be asynchronous (?)
-
+    # TODO: add retry mechanism to deal with temporary network down issue?
     node = get_node()
-    public_key_hex = get_public_key_hex()
 
     # Broadcast validator rand every 10 seconds when the last digit of the second is 0
-    if int(time.time()) % 10 == 0:
+    if int(time.time()) % 6 == 0:
         # every 10 seconds with the last digit of 0 (0, 10, 20, ...), broadcast validator rand
-        validator_rand = node.create_validator_rand(public_key_hex)
+        validator_rand = node.create_validator_rand()
         await node.broadcast_validator_rand(validator_rand)
 
     # Create and broadcast block every 10 seconds when the last digit of the second is 5
-    if int(time.time()) % 10 == 5:
-        is_validator = node.run_consensus_protocol()
-        if is_validator:
-            print("[INFO] Chosen as the validator - creating block")
+    if int(time.time()) % 6 == 3:
+        if node.is_validator():
+            print(f"[INFO {datetime.now().isoformat()}] Chosen as the validator - creating block")
             block = node.create_block()
             await node.broadcast_block(block, os.environ["ADDRESS"])
-
-    # 1. generate a random number and broadcast
-
-    # 2. check if all validators (any node with non-zero stake) submitted random numbers
-    # 2-1. set a timestamp threshold - if same validator sends a different rand after the time threshold,
-    # slash the stake of validator who didn't send the rand in the previous round
-    # TODO: add retry mechanism to deal with temporary network down issue?
-
-    # 3. Calculatoe the validator
-    # 3-1. If the valdiator is me, create a block and broadcast
-    # 3-2. If the validator is not me, wait for the incoming block and match the validator
 
 
 ##### Endpoints that services call #####

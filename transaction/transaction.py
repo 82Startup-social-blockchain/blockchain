@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.exceptions import InvalidSignature
 from account.account import Account
-from transaction.transaction_validation import TransactionValidation
+from validation.transaction.task import TransactionValidationTask
 from .transaction_type import TransactionType, TransactionContentType
 
 
@@ -171,7 +171,7 @@ class Transaction:
         self._verify_transaction()
 
         # validate the transaction itself
-        transaction_validation = TransactionValidation(self, account)
+        transaction_validation = TransactionValidationTask(self, account)
         transaction_validation.run()
 
 # Notes

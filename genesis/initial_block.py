@@ -5,8 +5,10 @@ import binascii
 import os
 import time
 import json
+from typing import List
 
 from cryptography.hazmat.primitives import serialization
+from account.account import Account
 
 from account.account_full import FullAccount
 from block.block import Block
@@ -16,17 +18,18 @@ from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS
 from utils.crypto import get_public_key_hex
 
 
-def create_initial_block(save_accounts=True, load_accounts=False) -> Block:
+def create_initial_accounts(save_to_file=True) -> List[Account]:
     public_keys = []
+    ico_accounts = [FullAccount() for _ in range(4)]
+    for account in ico_accounts:
+        public_keys.append(get_public_key_hex(account.private_key.public_key()))
 
-    if save_accounts:
-        ico_accounts = [FullAccount() for _ in range(4)]
-        for account in ico_accounts:
-            public_keys.append(get_public_key_hex(account.private_key.public_key()))
-
+    if save_to_file:
+        # save all public keys to one file
         with open(ICO_PUBLIC_KEY_FILE, 'w') as fp:
             json.dump(list(map(lambda x: x.decode('utf-8'), public_keys)), fp)
         print(f'[INFO] Saved public keys to {ICO_PUBLIC_KEY_FILE}')
+
         # save private keys to json file - only for running on local host
         # TODO: think about how to accomlish the effect in deployment
         for idx, account in enumerate(ico_accounts):
@@ -40,20 +43,25 @@ def create_initial_block(save_accounts=True, load_accounts=False) -> Block:
                 json.dump(private_key_hex, fp)
         print(f'[INFO] Saved private keys')
 
-    elif load_accounts:
-        ico_accounts = []
-        with open(ICO_PUBLIC_KEY_FILE, 'r') as fp:
-            public_keys = json.load(fp)
-        for idx in range(len(public_keys)):
-            with open(os.path.join(os.getcwd(), "genesis", f"account_{idx}.json"), 'r') as fp:
-                private_key_serialized = binascii.unhexlify(json.load(fp).encode('utf-8'))
-                private_key = serialization.load_der_private_key(private_key_serialized, None)
-                ico_accounts.append(FullAccount(private_key=private_key))
-        # print(f'[INFO] Loaded private keys')
+    return ico_accounts
 
-    else:
-        ico_accounts = [FullAccount() for _ in range(4)]
 
+# used for testing
+# file_path of file containing public keys of all ico accounts
+def load_initial_accounts(file_path: str) -> List[Account]:
+    ico_accounts = []
+    with open(file_path, 'r') as fp:
+        public_keys = json.load(fp)
+    for idx in range(len(public_keys)):
+        with open(os.path.join(os.getcwd(), "genesis", f"account_{idx}.json"), 'r') as fp:
+            private_key_serialized = binascii.unhexlify(json.load(fp).encode('utf-8'))
+        private_key = serialization.load_der_private_key(private_key_serialized, None)
+        ico_accounts.append(FullAccount(private_key=private_key))
+
+    return ico_accounts
+
+
+def create_initial_block(ico_accounts: List[Account]) -> Block:
     transactions = list()
     for account in ico_accounts:
         transaction = generate_transaction(
@@ -77,4 +85,4 @@ def create_initial_block(save_accounts=True, load_accounts=False) -> Block:
 
 
 if __name__ == '__main__':
-    create_initial_block()
+    create_initial_accounts(save_to_file=True)

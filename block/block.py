@@ -53,8 +53,7 @@ class Block:
         if self.previous_block_hash_hex is not None:
             previous_block_hash_hex = self.previous_block_hash_hex.decode('utf-8')
         elif self.previous_block is not None:
-            previous_block_hash_hex = binascii.hexlify(
-                self.previous_block.block_hash).decode('utf-8')
+            previous_block_hash_hex = binascii.hexlify(self.previous_block.block_hash).decode('utf-8')
         else:
             previous_block_hash_hex = None
 
@@ -101,8 +100,8 @@ class Block:
     def _verify_block(self) -> None:
         if self.signature is None:
             raise InvalidSignature
-        public_key_hex = binascii.unhexlify(self.validator_public_key_hex)
-        public_key = serialization.load_der_public_key(public_key_hex)
+        public_key_hash = binascii.unhexlify(self.validator_public_key_hex)
+        public_key = serialization.load_der_public_key(public_key_hash)
         public_key.verify(
             self.signature,
             json.dumps(self._to_presigned_dict()).encode('utf-8'),
@@ -161,12 +160,12 @@ class Block:
 def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = None) -> Block:
     """ Create a Block instance from input block dict
     block_dict has the following items
-    - previous_block_hash_hex   : Optional[bytes]
-    - transaction_hash_hex_list : List[bytes]
-    - validator_public_key_hex  : byte
+    - previous_block_hash_hex   : Optional[str] -> (decoded from bytes)
+    - transaction_hash_hex_list : List[str] (decoded from bytes)
+    - validator_public_key_hex  : str (decoded from bytes)
     - timestamp                 : float
-    - signature_hex             : Optiona[byte]
-    - block_hash_hex            : byte
+    - signature_hex             : Optiona[str] (decoded from bytes)
+    - block_hash_hex            : str (decoded from bytes)
     - transaction_dict_list     : List[dict]
     """
     transaction_list = list(
@@ -180,9 +179,15 @@ def create_block_from_dict(block_dict: Dict, previous_block: Optional[Block] = N
     else:
         signature = None
 
+    previous_block_hash_hex = block_dict["previous_block_hash_hex"]
+    if previous_block_hash_hex is None and previous_block is not None:
+        previous_block_hash_hex = binascii.hexlify(previous_block.block_hash)
+    if previous_block_hash_hex is not None:
+        previous_block_hash_hex = previous_block_hash_hex.encode('utf-8')
+
     block = Block(
         previous_block,
-        binascii.hexlify(previous_block.block_hash) if previous_block is not None else None,
+        previous_block_hash_hex,
         transaction_list,
         block_dict["validator_public_key_hex"].encode('utf-8'),
         block_dict["timestamp"]

@@ -99,6 +99,7 @@ If you want to use example data to start with, run
 In order to initialize a node with the example data, you need to set an environment `INIT_BLOCKCHAIN_FILE_NAME` with the json file name.
 
 ```
+(venv) $ python -m genesis.initial_block
 (venv) $ export INIT_BLOCKCHAIN_FILE_NAME=blockchain_length2.json # optional
 (venv) $ export ACCOUNT_KEY_FILE_NAME=account_0.json
 (venv) $ export ADDRESS=http://127.0.0.1:8000

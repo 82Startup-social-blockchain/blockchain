@@ -6,7 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from block.block import create_block_from_dict
-from block.block_exception import BlockNotHeadError
+from validation.block.exception import BlockNotHeadError
 from block.validator_rand import ValidatorRand
 from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest, ValidatorRandRequest
 from node.node import Node
@@ -21,34 +21,31 @@ router = APIRouter()
 
 ##### Endpoints that other nodes call #####
 
+# other nodes hit this endpoint to broadcast block to this node
 @router.post(constants.BLOCK_VALIDATION_PATH, response_model=None)
 async def validate_block(
     blockRequest: BlockValidationRequest,
     node: Node = Depends(get_node)
 ):
-    # other nodes hit this endpoint to broadcast block to this node
+    # TODO: what if the block does not reach this node in order? - make a block pool to store candidate blocks?
 
     # 1. create block instance
     previous_block = None
-    if blockRequest.previous_block_hash_hex is not None:
-        # TODO: what if the block does not reach this node in order?
-        # make a block pool to store candidate blocks
-        # for now, just check if the previous block is head
-        if node.blockchain.head.block_hash != binascii.unhexlify(blockRequest.previous_block_hash_hex.encode('utf-8')):
-            raise BlockNotHeadError(
-                None, message="Requested block is not linked to the current head",
-                block_hash=blockRequest.block_hash_hex.encode('utf-8')
-            )
-        previous_block = node.blockchain.head
 
-    block_dict = blockRequest.dict()
-    origin = block_dict["origin"]
-    del block_dict["origin"]
-    block = create_block_from_dict(blockRequest.dict(), previous_block)  # linked to previous_block
+    # accepted block guaranteed to have previous_block_hash_hex (genesis block is not broacasted)
+    # check that block hash is either previous block hash or head hash
+    req_prev_block_hash = binascii.unhexlify(blockRequest.previous_block_hash_hex.encode('utf-8'))
+    req_block_hash = binascii.unhexlify(blockRequest.block_hash_hex.encode('utf-8'))
+    if node.blockchain.head.block_hash not in (req_prev_block_hash, req_block_hash):
+        raise BlockNotHeadError(
+            None, message="Requested block is not linked to the current head",
+            block_hash=blockRequest.block_hash_hex.encode('utf-8')
+        )
+
+    block = create_block_from_dict(blockRequest.dict(), previous_block=previous_block)  # linked to previous_block
 
     # 2. add block to blockchain
-    logger.info("Adding new block to blockchain")
-    await node.accept_block(block, origin)
+    await node.accept_block(block, blockRequest.dict()["origin"])
 
 
 @router.post(constants.TRANSACTION_VALIDATION_PATH, response_model=None)

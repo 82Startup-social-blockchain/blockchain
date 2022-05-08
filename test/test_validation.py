@@ -6,7 +6,7 @@ from account.account_full import FullAccount
 from block.block import Block
 from block.blockchain import Blockchain
 from genesis.initial_block import create_initial_block
-from transaction.transaction_exception import TransactionAccountError, TransactionStakeError, TransactionTipError, TransactionTransferError
+from validation.transaction.exception import TransactionAccountError, TransactionStakeError, TransactionTipError, TransactionTransferError
 from transaction.transaction_type import TransactionType
 from transaction.transaction_utils import generate_transaction
 from utils.constants import ICO_TOKENS, VALIDATION_REWARD
@@ -28,7 +28,7 @@ class TransactionValidationTestCase(unittest.TestCase):
         self.public_key_hex5 = get_public_key_hex(self.account5.private_key.public_key())
 
         #### Block 0 - ICO ####
-        self.block0 = create_initial_block(save_accounts=False, load_accounts=True)
+        self.block0 = create_initial_block([self.account1, self.account2, self.account3, self.account4])
 
         # account1 signs empty block to get balance ####
         self.block1 = Block(
