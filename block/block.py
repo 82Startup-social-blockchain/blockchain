@@ -11,6 +11,8 @@ from transaction.transaction import Transaction
 from transaction.transaction_type import TransactionType
 from transaction.transaction_utils import create_transaction_from_dict
 from utils import constants
+from validation.block.exception import BlockValidationError
+from validation.block.task import BlockValidationTask
 
 
 class Block:
@@ -108,18 +110,20 @@ class Block:
             ec.ECDSA(hashes.SHA256())
         )
 
-    def validate(self, account_dict: Dict[bytes, Account]):
-        # 1. verify the block signature - if invalid, throw InvalidSignature exception
+    def _is_initial_block(self):
+        return self.previous_block is None and self.previous_block_hash_hex is None
+
+    def validate(
+        self,
+        account_dict: Dict[bytes, Account],
+        block_validator_dict: Optional[Dict[bytes, bytes]] = None
+    ):
+        # 1. Verify the block signature - if invalid, throw InvalidSignature exception
         self._verify_block()
 
-        # 2. validate all the transactions
-        for transaction in self.transaction_list:
-            tx_publick_key_hex = transaction.transaction_source.source_public_key_hex
-            transaction.validate(account_dict.get(tx_publick_key_hex, None))
-
-        # TODO: 3. validate that type is not ICO if it's not the first block
-
-        # TODO: 4. validate the validator
+        # 2. Run block validation task
+        block_validation = BlockValidationTask(self, account_dict, block_validator_dict=block_validator_dict)
+        block_validation.run()
 
     def update_account_dict(self, account_dict: Dict[bytes, Account]):
         # assume block is already validated

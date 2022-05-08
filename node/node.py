@@ -150,7 +150,7 @@ class Node:
         block_hash_hex = binascii.hexlify(block.block_hash)
         print(f"[INFO] Initializing ICO block {block_hash_hex}")
 
-        block.validate(self.account_dict)
+        block.validate(self.account_dict, block_validator_dict=None)
 
         if self.blockchain is not None:
             self.blockchain.add_new_block(block)
@@ -223,30 +223,13 @@ class Node:
         block_hash_hex = binascii.hexlify(block.block_hash)
         print(f"[INFO {datetime.now().isoformat()}] Received block from {origin} - {block_hash_hex}")
 
-        # 0. Check if block is already accepted
+        # 1. Check if block is already accepted
         if binascii.hexlify(self.blockchain.head.block_hash) == binascii.hexlify(block.block_hash):
             print(f"[INFO {datetime.now().isoformat()}] Received block from {origin} has already been accepted - {block_hash_hex}")
             return
 
-        # 1. Validate block
-        block.validate(self.account_dict)
-
-        # 2. Check if the validator is the right validator
-        # The genesis block will not be accepted through this method => previous_block or previous_block_hash_hex not None
-        if block.previous_block is not None:
-            previous_block_hash_hex = binascii.hexlify(block.previous_block.block_hash)
-        elif block.previous_block_hash_hex is not None:
-            previous_block_hash_hex = block.previous_block_hash_hex
-        else:
-            self._get_longest_blockchain()
-            raise BlockPreviousBlockError(block, message="Previous block hash hex nonexistent")
-
-        if previous_block_hash_hex not in self.block_validator_dict:
-            self._get_longest_blockchain()
-            raise BlockValidatorError(block, message="No validator of the received block")
-        if self.block_validator_dict[previous_block_hash_hex] != block.validator_public_key_hex:
-            self._get_longest_blockchain()
-            raise BlockValidationError(block, message="Wrong validator of the received block")
+        # 2. Validate block
+        block.validate(self.account_dict, self.block_validator_dict)
 
         # 3. Add block to blockchain if it is the most recent
         async with self.lock:

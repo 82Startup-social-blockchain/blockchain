@@ -166,12 +166,12 @@ class Transaction:
             ec.ECDSA(hashes.SHA256())
         )
 
-    def validate(self, account: Account) -> None:
+    def validate(self, account: Account, is_initial_block: bool = False) -> None:
         # verify transaction signature
         self._verify_transaction()
 
         # validate the transaction itself
-        transaction_validation = TransactionValidationTask(self, account)
+        transaction_validation = TransactionValidationTask(self, account, is_initial_block=is_initial_block)
         transaction_validation.run()
 
 # Notes

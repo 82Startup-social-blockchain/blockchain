@@ -15,9 +15,15 @@ if TYPE_CHECKING:
 
 
 class TransactionValidationTask:
-    def __init__(self, transaction: Transaction, account: Optional[Account]):
+    def __init__(
+        self,
+        transaction: Transaction,
+        account: Optional[Account],
+        is_initial_block: bool = False
+    ):
         self.transaction = transaction
         self.account = account
+        self.is_initial_block = is_initial_block
 
     def _validate_stake(self):
         if self.account is None:
@@ -81,6 +87,10 @@ class TransactionValidationTask:
     def _validate_ico(self):
         with open(ICO_PUBLIC_KEY_FILE, 'r') as fp:
             ico_accounts = list(map(lambda x: x.encode('utf-8'), json.load(fp)))
+
+        # validate that it is not the initial block
+        if not self.is_initial_block:
+            raise TransactionIcoError(self.transaction, message=f"ICO transaction in non-initial block")
 
         # validate if transaction account is in ICO list
         ico_account = self.transaction.transaction_source.source_public_key_hex
