@@ -6,9 +6,9 @@ import time
 from fastapi import APIRouter, FastAPI
 from fastapi_utils.tasks import repeat_every
 
-from node.node import Node
 from runner.deps import get_node
-from runner.routes import p2p as p2p_route, data as data_route, service as service_route
+from runner.routes import p2p as p2p_route, data as data_route
+from runner.routes.service import transaction as transaction_route, account as account_route
 
 FORMAT = "%(levelname)s:     %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -44,6 +44,7 @@ async def choose_validator():
 api_router = APIRouter()
 api_router.include_router(p2p_route.router)
 api_router.include_router(data_route.router)
-api_router.include_router(service_route.router)
+api_router.include_router(transaction_route.router)
+api_router.include_router(account_route.router)
 
 app.include_router(api_router)

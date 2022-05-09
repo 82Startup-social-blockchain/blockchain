@@ -12,7 +12,7 @@ from runner.models.transaction import TransactionCreateRequest
 from transaction.transaction import Transaction, TransactionSource, TransactionTarget
 from transaction.transaction_type import TransactionContentType, TransactionType
 from utils.constants import STORAGE_PATH
-from utils.crypto import convert_encryption_key_to_fernet_key, get_public_key_hex
+from utils.crypto import get_fernet, get_public_key_hex
 
 
 def create_transaction_from_dict(tx_dict: dict) -> Transaction:
@@ -191,13 +191,13 @@ def upload_content_to_storage(
     content_hash_hex_str = binascii.hexlify(content_hash).decode('utf-8')
 
     if tx_request.encryption_key is not None:
-        fernet = convert_encryption_key_to_fernet_key(tx_request.encryption_key)
+        fernet = get_fernet(tx_request.encryption_key)
         content_encrypted = fernet.encrypt(tx_request.content.encode('utf-8'))
     else:
         content_encrypted = tx_request.content
 
     with open(os.path.join(STORAGE_PATH, content_hash_hex_str + '.json'), 'w') as fp:
-        json.dump(content_encrypted, fp)
+        json.dump(content_encrypted.decode('utf-8'), fp)
 
     return content_hash
 
@@ -223,3 +223,23 @@ def get_content_hash_from_request(tx_request: TransactionCreateRequest, timestam
     digest.update(str(timestamp).encode('utf-8'))
 
     return digest.finalize()
+
+
+def get_content_from_transaction(transaction: Transaction, encryption_key: str) -> Optional[str]:
+    content_hash = transaction.transaction_source.content_hash
+    if content_hash is None:
+        return None
+    content_hash_hex = binascii.hexlify(content_hash)
+
+    content_file_path = os.path.join(STORAGE_PATH, content_hash_hex.decode('utf-8') + '.json')
+    if not os.path.exists(content_file_path):
+        return None
+
+    with open(content_file_path, 'r') as fp:
+        content = json.load(fp)
+
+    if encryption_key is not None:
+        fernet = get_fernet(encryption_key)
+        content = fernet.decrypt(content.encode('utf-8')).decode('utf-8')
+
+    return content

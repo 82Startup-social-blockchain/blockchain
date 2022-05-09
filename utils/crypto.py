@@ -14,13 +14,13 @@ def get_public_key_hex(public_key: ec.EllipticCurvePublicKey) -> bytes:
     return binascii.hexlify(public_key_serialized)
 
 
-def convert_encryption_key_to_fernet_key(encryption_key: str) -> Fernet:
+def get_fernet(encryption_key: str) -> Fernet:
     digest = hashes.Hash(hashes.SHA256())
-    digest.update(encryption_key)
+    digest.update(encryption_key.encode('utf-8'))
     encryption_key_hash = digest.finalize()
 
     encryption_key_hash_hex = binascii.hexlify(encryption_key_hash)
-    encryption_key_64 = codecs.encode(codecs.decode(encryption_key_hash_hex, 'hex'), 'bas64').decode()
+    encryption_key_64 = codecs.encode(codecs.decode(encryption_key_hash_hex, 'hex'), 'base64').decode()
     return Fernet(encryption_key_64)
 
 
