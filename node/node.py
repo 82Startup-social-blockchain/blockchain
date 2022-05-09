@@ -10,6 +10,7 @@ from typing import Dict, Optional
 from cryptography.hazmat.primitives.asymmetric import ec
 import httpx
 import requests
+from account.account import Account
 
 from block.block import Block
 from block.blockchain import Blockchain
@@ -168,7 +169,7 @@ class Node:
 
     async def accept_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(transaction.transaction_hash)
-        print(f"[INFO] Received transaction {transaction_hash_hex} from {origin}")
+        print(f"[INFO {datetime.now().isoformat()}] Received transaction from {origin} - {transaction_hash_hex}")
 
         # 1. Check if transaction in transaction pool
         async with self.lock:
@@ -176,11 +177,16 @@ class Node:
                 return None
 
         # 2. Validate transaction
+        source_public_key_hex = transaction.transaction_source.source_public_key_hex
+        async with self.lock:
+            if source_public_key_hex not in self.account_dict:
+                self.account_dict[source_public_key_hex] = Account(source_public_key_hex)
         transaction.validate(self.account_dict[transaction.transaction_source.source_public_key_hex])
 
         # 3. Add to transaction pool
         async with self.lock:
             self.transaction_pool[transaction_hash_hex] = transaction
+        print(f"[INFO {datetime.now().isoformat()}] Added transaction to transaction pool - {transaction_hash_hex}")
 
         # 4. Broadcast to other nodes
         await self._broadcast_transaction(transaction, origin)
@@ -375,11 +381,13 @@ class Node:
         # 1. order transactions in transaction pool by the amount of stake
         # TODO: eventual inclusion?
         account_stake_dict = get_stakes_from_accounts(self.account_dict)
-
         transaction_candidates = []  # tuple of transaction and account stake
+        # TODO: come up with an updated method to calculate the parent stake
         for transaction_hash_hex in self.transaction_pool:
             transaction = self.transaction_pool[transaction_hash_hex]
-            transaction_candidates.append((transaction, account_stake_dict[transaction.transaction_source.source_public_key_hex]))
+            transaction_candidates.append(
+                (transaction, account_stake_dict.get(transaction.transaction_source.source_public_key_hex, 0))
+            )
         transaction_candidates = sorted(transaction_candidates, key=lambda x: x[1], reverse=True)[:constants.MAX_TX_PER_BLOCK]
         tx_list = list(map(lambda x: x[0], transaction_candidates))
         block = Block(
