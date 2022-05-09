@@ -14,13 +14,13 @@ from account.account_full import FullAccount
 from block.block import Block
 from transaction.transaction_type import TransactionType
 from transaction.transaction_utils import generate_transaction
-from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS
+from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS, MIN_VALIDATOR_CNT
 from utils.crypto import get_public_key_hex
 
 
 def create_initial_accounts(save_to_file=True) -> List[Account]:
     public_keys = []
-    ico_accounts = [FullAccount() for _ in range(4)]
+    ico_accounts = [FullAccount() for _ in range(MIN_VALIDATOR_CNT)]
     for account in ico_accounts:
         public_keys.append(get_public_key_hex(account.private_key.public_key()))
 

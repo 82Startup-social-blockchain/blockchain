@@ -12,13 +12,13 @@ import httpx
 import requests
 
 from block.block import Block
-from validation.block.exception import BlockPreviousBlockError, BlockValidationError, BlockValidatorError
 from block.blockchain import Blockchain
 from block.validator_rand import ValidatorRand
 from transaction.transaction import Transaction
 from utils import constants
 from node.utils import get_stakes_from_accounts
 from utils.crypto import get_public_key_hex
+from validation.block.exception import BlockNotHeadError, BlockValidationError
 from validation.validator_rand.task import ValidatorRandValidationTask
 
 
@@ -99,7 +99,7 @@ class Node:
         for address in address_set:
             if address == self.address:
                 continue
-            url = address + constants.BLOCKCHAIN_REQUEST_PATH
+            url = address + "/data/blockchain"
             try:
                 r = requests.get(url=url)
                 if self.blockchain is None:
@@ -114,7 +114,7 @@ class Node:
                         self.blockchain = None
                 else:
                     # TODO: update after head instead of re-initializing
-                    if len(self.blockchain.head) < len(r.json()):
+                    if len(self.blockchain) < len(r.json()):
                         self.blockchain.from_dict_list(r.json())
                         try:
                             self.blockchain.validate()
@@ -185,8 +185,6 @@ class Node:
         # 4. Broadcast to other nodes
         await self._broadcast_transaction(transaction, origin)
 
-        # 5. TODO: Add block to blockchain if the condition is met
-
     async def _broadcast_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(transaction.transaction_hash)
 
@@ -229,7 +227,10 @@ class Node:
             return
 
         # 2. Validate block
-        block.validate(self.account_dict, self.block_validator_dict)
+        try:
+            block.validate(self.account_dict, self.block_validator_dict)
+        except (BlockValidationError, BlockNotHeadError):
+            self._get_longest_blockchain()
 
         # 3. Add block to blockchain if it is the most recent
         async with self.lock:
@@ -240,7 +241,7 @@ class Node:
                     self.blockchain.add_new_block(block)
             else:
                 self.blockchain = Blockchain(block)
-        print(f"[INFO {datetime.now().isoformat()}] Added block to blockchain - updated length: {len(self.blockchain.head)}")
+        print(f"[INFO {datetime.now().isoformat()}] Added block to blockchain - updated length: {len(self.blockchain)}")
 
         # 4. Apply account stake and balance changes. Give tokens to the validator.
         block.update_account_dict(self.account_dict)

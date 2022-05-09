@@ -144,3 +144,7 @@ example_data/blockchain_length2.json
 example_data/blockchain_length3.json
 example_data/transaction10.json
 example_data/transaction11.json
+example_data/transaction_post
+
+# storage data
+storage/*

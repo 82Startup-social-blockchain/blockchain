@@ -1,6 +1,4 @@
 import binascii
-from http.client import HTTPException
-import logging
 from typing import List
 
 from fastapi import APIRouter, Depends
@@ -8,15 +6,16 @@ from fastapi import APIRouter, Depends
 from block.block import create_block_from_dict
 from validation.block.exception import BlockNotHeadError
 from block.validator_rand import ValidatorRand
-from node.models import BlockValidationRequest, NodeAddress, TransactionValidationRequest, ValidatorRandRequest
+from runner.models.block import BlockValidationRequest
+from runner.models.node import NodeAddress
+from runner.models.validator_rand import ValidatorRandRequest
+from runner.models.transaction import TransactionValidationRequest
 from node.node import Node
 from runner.deps import get_node
 from transaction.transaction_utils import create_transaction_from_dict
 from utils import constants
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter()
+router = APIRouter(tags=["p2p"])
 
 
 ##### Endpoints that other nodes call #####

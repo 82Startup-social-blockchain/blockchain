@@ -1,15 +1,9 @@
 import binascii
-import logging
 from typing import Dict, List, Optional
 
 from account.account import Account
 from block.block import Block, create_block_from_dict
 from validation.block.exception import BlockNotHeadError
-from transaction.transaction_type import TransactionType
-from utils import constants
-
-
-logger = logging.getLogger(__name__)
 
 
 # Blockchain is stored in RAM (at least for now)
@@ -17,6 +11,11 @@ logger = logging.getLogger(__name__)
 class Blockchain:
     def __init__(self, head: Optional[Block] = None):
         self.head = head
+
+    def __len__(self):
+        if self.head is None:
+            return 0
+        return len(self.head)
 
     def to_dict_list(self) -> List[dict]:
         # convert the whole chain to a list of blocks (blocks represented as dict)

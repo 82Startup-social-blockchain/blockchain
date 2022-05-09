@@ -11,7 +11,6 @@ from transaction.transaction import Transaction
 from transaction.transaction_type import TransactionType
 from transaction.transaction_utils import create_transaction_from_dict
 from utils import constants
-from validation.block.exception import BlockValidationError
 from validation.block.task import BlockValidationTask
 
 
