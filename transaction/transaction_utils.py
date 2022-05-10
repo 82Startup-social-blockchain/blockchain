@@ -47,16 +47,16 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
         TransactionType(tx_dict["transaction_type"]),
         content_type=content_type,
         content_hash=content_hash,
-        tx_fee=tx_dict["tx_fee"]
+        tx_fee=tx_dict.get("tx_fee", None)
     )
 
     # create TransactionTarget object
-    if tx_dict["target_transaction_hash_hex"] is not None:
+    if tx_dict.get("target_transaction_hash_hex", None) is not None:
         target_transaction_hash_hex = tx_dict["target_transaction_hash_hex"].encode('utf-8')
     else:
         target_transaction_hash_hex = None
 
-    if tx_dict["target_public_key_hex"] is not None:
+    if tx_dict.get("target_public_key_hex", None) is not None:
         target_public_key_hex = tx_dict["target_public_key_hex"].encode('utf-8')
     else:
         target_public_key_hex = None
@@ -64,12 +64,12 @@ def create_transaction_from_dict(tx_dict: dict) -> Transaction:
     transaction_target = TransactionTarget(
         target_transaction_hash_hex=target_transaction_hash_hex,
         target_public_key_hex=target_public_key_hex,
-        tx_token=tx_dict["tx_token"],
-        tx_object=tx_dict["tx_object"]
+        tx_token=tx_dict.get("tx_token", None),
+        tx_object=tx_dict.get("tx_object", None)
     )
 
     # create Transaction object
-    if tx_dict["signature_hex"] is not None:
+    if tx_dict.get("signature_hex", None) is not None:
         signature_hex = tx_dict["signature_hex"].encode('utf-8')
         signature = binascii.unhexlify(signature_hex)
     else:
@@ -194,7 +194,7 @@ def upload_content_to_storage(
         fernet = get_fernet(tx_request.encryption_key)
         content_encrypted = fernet.encrypt(tx_request.content.encode('utf-8'))
     else:
-        content_encrypted = tx_request.content
+        content_encrypted = tx_request.content.encode('utf-8')
 
     with open(os.path.join(STORAGE_PATH, content_hash_hex_str + '.json'), 'w') as fp:
         json.dump(content_encrypted.decode('utf-8'), fp)
@@ -217,7 +217,7 @@ def get_content_hash_from_request(tx_request: TransactionCreateRequest, timestam
 
     # include target transaction hash
     if tx_request.target_transaction_hash_hex is not None:
-        digest.update(tx_request.target_public_key_hex.encode('utf-8'))
+        digest.update(tx_request.target_transaction_hash_hex.encode('utf-8'))
 
     # include timestamp
     digest.update(str(timestamp).encode('utf-8'))

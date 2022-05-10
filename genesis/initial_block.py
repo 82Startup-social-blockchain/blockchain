@@ -13,7 +13,7 @@ from account.account import Account
 from account.account_full import FullAccount
 from block.block import Block
 from transaction.transaction_type import TransactionType
-from transaction.transaction_utils import generate_transaction
+from transaction.transaction_utils import create_transaction_from_dict, generate_transaction
 from utils.constants import ICO_PUBLIC_KEY_FILE, ICO_TOKENS, MIN_VALIDATOR_CNT
 from utils.crypto import get_public_key_hex
 
@@ -71,6 +71,14 @@ def create_initial_block(ico_accounts: List[Account]) -> Block:
         )
         transaction.sign_transaction(account.private_key)
         transactions.append(transaction)
+
+    # load initial data if exists
+    initial_data_file = os.path.join(os.getcwd(), "genesis", "initial_data.json")
+    if os.path.exists(initial_data_file):
+        with open(initial_data_file, 'r') as fp:
+            initial_tx_list = json.load(fp)
+        for tx_dict in initial_tx_list:
+            transactions.append(create_transaction_from_dict(tx_dict))
 
     block = Block(
         None,

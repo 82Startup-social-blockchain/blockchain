@@ -13,7 +13,7 @@ VALIDATOR_RAND_PATH = "/validator/rand"
 ICO_TOKENS = 1_000_000
 VALIDATION_REWARD = 100  # TODO: make it a function of staked tokens in a block
 VALIATOR_MINIMUM_STAKE = 10  # minimum staked token to become a validator # TODO: apply logi based on this number
-MAX_TX_PER_BLOCK = 20  # maximum number of transactions per block # TODO: can calculate precisely backwards form desired block size
+MAX_TX_PER_BLOCK = 50  # maximum number of transactions per block # TODO: can calculate precisely backwards form desired block size
 
 MIN_VALIDATOR_CNT = 3  # minimum number of validators needed to create a block
 

@@ -4,6 +4,7 @@ import logging
 import time
 
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
 
 from runner.deps import get_node
@@ -18,6 +19,18 @@ assert "ADDRESS" in os.environ
 assert "ACCOUNT_KEY_FILE_NAME" in os.environ
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:4200"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
