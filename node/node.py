@@ -159,17 +159,17 @@ class Node:
         else:
             self.blockchain = Blockchain(block)
             self.account_dict = self.blockchain.initialize_accounts()
-        print(f"[INFO] Account stakes after ico block initialization: {get_stakes_from_accounts(self.account_dict)}")
+        # print(f"[INFO] Account stakes after ico block initialization: {get_stakes_from_accounts(self.account_dict)}")
 
     ##### P2P data handling #####
 
     def accept_new_node(self, address: str):
-        print(f"[INFO] Accepted node {address}")
+        # print(f"[INFO] Accepted node {address}")
         self.known_node_address_set.add(address)
 
     async def accept_transaction(self, transaction: Transaction, origin: str):
         transaction_hash_hex = binascii.hexlify(transaction.transaction_hash)
-        print(f"[INFO {datetime.now().isoformat()}] Received transaction from {origin} - {transaction_hash_hex}")
+        # print(f"[INFO {datetime.now().isoformat()}] Received transaction from {origin} - {transaction_hash_hex}")
 
         # 1. Check if transaction in transaction pool
         async with self.lock:
@@ -186,7 +186,7 @@ class Node:
         # 3. Add to transaction pool
         async with self.lock:
             self.transaction_pool[transaction_hash_hex] = transaction
-        print(f"[INFO {datetime.now().isoformat()}] Added transaction to transaction pool - {transaction_hash_hex}")
+        # print(f"[INFO {datetime.now().isoformat()}] Added transaction to transaction pool - {transaction_hash_hex}")
 
         # 4. Broadcast to other nodes
         await self._broadcast_transaction(transaction, origin)
@@ -214,7 +214,7 @@ class Node:
                     self.transaction_broadcasted[transaction_hash_hex].add(address)
                 async with httpx.AsyncClient() as client:
                     await client.post(url, headers=headers, json=data)
-                print(f'[INFO] Broadcasted transaction {transaction_hash_hex} to {address}')
+                # print(f'[INFO] Broadcasted transaction {transaction_hash_hex} to {address}')
             except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
                 print(f"[WARN] Detected disconnection of {address}")
                 disconnected_address_set.add(address)
@@ -225,11 +225,11 @@ class Node:
 
     async def accept_block(self, block: Block, origin: str) -> None:
         block_hash_hex = binascii.hexlify(block.block_hash)
-        print(f"[INFO {datetime.now().isoformat()}] Received block from {origin} - {block_hash_hex}")
+        # print(f"[INFO {datetime.now().isoformat()}] Received block from {origin} - {block_hash_hex}")
 
         # 1. Check if block is already accepted
         if binascii.hexlify(self.blockchain.head.block_hash) == binascii.hexlify(block.block_hash):
-            print(f"[INFO {datetime.now().isoformat()}] Received block from {origin} has already been accepted - {block_hash_hex}")
+            # print(f"[INFO {datetime.now().isoformat()}] Received block from {origin} has already been accepted - {block_hash_hex}")
             return
 
         # 2. Validate block
@@ -288,7 +288,7 @@ class Node:
                     self.block_broadcasted[block_hash_hex].add(address)
                 async with httpx.AsyncClient() as client:
                     await client.post(url, headers=headers, json=data)
-                print(f'[INFO {datetime.now().isoformat()}] Broadcasted block {block_hash_hex} to {address}')
+                # print(f'[INFO {datetime.now().isoformat()}] Broadcasted block {block_hash_hex} to {address}')
             except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
                 print(f"[WARN] Detected disconnection of {address}")
                 disconnected_address_set.add(address)
@@ -297,7 +297,7 @@ class Node:
             self.known_node_address_set.difference_update(disconnected_address_set)
 
     async def accept_validator_rand(self, validator_rand: ValidatorRand):
-        print(f"[INFO {datetime.now().isoformat()}] Received validator rand {validator_rand.rand} from validator {validator_rand.validator_public_key_hex} for head {validator_rand.previous_block_hash_hex}")
+        # print(f"[INFO {datetime.now().isoformat()}] Received validator rand {validator_rand.rand} from validator {validator_rand.validator_public_key_hex} for head {validator_rand.previous_block_hash_hex}")
 
         # 1. Validate validator_rand
         validator_rand_validation_task = ValidatorRandValidationTask(validator_rand)
@@ -328,7 +328,7 @@ class Node:
             try:
                 async with httpx.AsyncClient() as client:
                     await client.post(url, headers=headers, json=data)
-                print(f'[INFO {datetime.now().isoformat()}] Broadcasted validator rand {data["rand"]} to {address} - block {validator_rand.previous_block_hash_hex}')
+                # print(f'[INFO {datetime.now().isoformat()}] Broadcasted validator rand {data["rand"]} to {address} - block {validator_rand.previous_block_hash_hex}')
             except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout):
                 print(f"[WARN] Detected disconnection of {address}")
                 disconnected_address_set.add(address)

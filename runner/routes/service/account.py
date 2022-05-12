@@ -1,5 +1,8 @@
+import binascii
 from typing import List, Optional
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import APIRouter, Depends
 
 from runner.models.account import Account
@@ -47,3 +50,17 @@ async def get_account_transactions(
         curr_block = curr_block.previous_block
 
     return transactions
+
+
+# create account - return private key encoded hex
+@router.post("/")
+async def create_account():
+    private_key = ec.generate_private_key(ec.SECP384R1())
+    private_key_serialized = private_key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    private_key_hex = binascii.hexlify(private_key_serialized).decode('utf-8')
+
+    return private_key_hex
